@@ -10,9 +10,18 @@ struct Background;
 struct XcomObject;
 
 #[derive(Resource)]
-pub struct XcomSprites {
+pub struct XcomResources {
     geo_map: Handle<Image>,
     placeholder: Handle<Image>,
+}
+
+#[derive(Resource)]
+pub struct XcomState {
+    time: usize,
+    research: Vec<Research>,
+    selected_research: Option<Research>,
+    resources: Vec<Resources>,
+    assets: XcomResources,
 }
 
 pub fn setup(
@@ -29,7 +38,7 @@ pub fn setup(
     let background_position = Vec2::new(0.0, 0.0);
     commands.spawn((
         dbg!(Sprite {
-            image: assets.geo_map,
+            image: assets.geo_map.clone(),
             custom_size: background_size,
             ..Default::default()
         }),
@@ -47,10 +56,10 @@ pub fn setup(
     });
 }
 
-fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomSprites {
-    XcomSprites {
-        geo_map: asset_server.load("assets/placeholder_geomap.jpg"),
-        placeholder: asset_server.load("assets/placeholder_geomap.jpg"),
+fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
+    XcomResources {
+        geo_map: asset_server.load("mascot.png"),
+        placeholder: asset_server.load("mascot.png"),
     }
 }
 

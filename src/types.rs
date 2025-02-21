@@ -24,12 +24,3 @@ pub struct Resources {
     description: String,
     amount: usize,
 }
-
-#[derive(Resource)]
-pub struct XcomState {
-    time: usize,
-    research: Vec<Research>,
-    selected_research: Option<Research>,
-    resources: Vec<Resources>,
-    assets: XcomSprites,
-}
