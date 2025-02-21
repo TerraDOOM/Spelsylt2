@@ -1,3 +1,1 @@
 struct TouhouMarker;
-
-g
