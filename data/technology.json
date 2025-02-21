@@ -1,0 +1,9 @@
+[
+    {
+        "id": "Blue_armour",
+        "name": "Frost chainmail",
+        "description": "A cryogenicly refreezing armour",
+        "cost": 100,
+        "prerequisates": ["Ice_knowledge"]
+    }
+]

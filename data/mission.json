@@ -1,0 +1,18 @@
+[
+    {
+        "id": "Cirno_recon_1",
+        "name": "Fairy recon",
+        "enemy": "Cirno",
+        "requirments": ["Land"],
+        "consequences":null,
+        "rewards": ["Ice_knowledge","Cirno_whereabouts"]
+    },
+    {
+        "id": "Cirno_shootout",
+        "name": "Fairy recon",
+        "enemy": "Cirno",
+        "requirments": ["Land","Cirno_whereabouts"],
+        "consequences":null,
+        "rewards": ["Ice_knowledge","Cirno_captive"]
+    }
+]
