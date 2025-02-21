@@ -9,28 +9,27 @@ struct Background;
 #[derive(Component)]
 struct XcomObject;
 
+#[derive(Resource)]
+pub struct XcomSprites {
+    geo_map: Handle<Image>,
+    placeholder: Handle<Image>,
+}
+
 pub fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    windows: Query<&mut Window, With<PrimaryWindow>>,
+    window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
 ) {
-    let window = windows.single();
     let width = window.resolution.width();
     let height = window.resolution.height();
 
-    commands.insert_resource(XcomState {
-        time: 0,
-        research: vec![],
-        selected_research: None,
-        resources: vec![],
-        assets: load_Xcom_assets(asset_server),
-    });
+    let assets = load_Xcom_assets(&asset_server);
 
     let background_size = Some(Vec2::new(width, height));
     let background_position = Vec2::new(0.0, 0.0);
     commands.spawn((
         dbg!(Sprite {
-            image: state.assets.geoMap,
+            image: assets.geo_map,
             custom_size: background_size,
             ..Default::default()
         }),
@@ -38,11 +37,19 @@ pub fn setup(
         Background,
         XcomObject,
     ));
+
+    commands.insert_resource(XcomState {
+        time: 0,
+        research: vec![],
+        selected_research: None,
+        resources: vec![],
+        assets,
+    });
 }
 
 fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomSprites {
     XcomSprites {
-        geoMap: asset_server.load("assets/placeholder_geomap.jpg"),
+        geo_map: asset_server.load("assets/placeholder_geomap.jpg"),
         placeholder: asset_server.load("assets/placeholder_geomap.jpg"),
     }
 }

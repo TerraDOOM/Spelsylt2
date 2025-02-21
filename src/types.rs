@@ -33,9 +33,3 @@ pub struct XcomState {
     resources: Vec<Resources>,
     assets: XcomSprites,
 }
-
-#[derive(Resource)]
-pub struct XcomSprites {
-    geoMap: Handle<Image>,
-    placeholder: Handle<Image>,
-}
