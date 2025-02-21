@@ -63,6 +63,20 @@ fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     }
 }
 
+fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+    context.time += 1;
+    if let Some(selected_research) = &mut context.selected_research {
+        selected_research.progress += 1;
+    }
+}
+
+fn on_time_tick(context: ResMut, delta_time: usize) {
+    //Chance for invasion/mission TODO
+    //Tick research and production
+
+    //Change hud
+}
+
 /*fn on_xcom_sim(
     mut commands: Commands,
     mut tmp: ResMut<NextState<DatingState>>,

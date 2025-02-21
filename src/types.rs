@@ -11,11 +11,12 @@ pub struct Mission {
 }
 
 pub struct Research {
-    id: String,
-    name: String,
-    description: String,
-    cost: usize,
-    prerequisites: Vec<String>,
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: usize,
+    pub prerequisites: Vec<String>,
+    pub progress: usize,
 }
 
 #[derive(Resource)]
