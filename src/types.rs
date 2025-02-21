@@ -1,3 +1,5 @@
+use bevy::prelude::*;
+
 #[derive(Resource)]
 pub struct Mission {
     id: String,
@@ -8,32 +10,18 @@ pub struct Mission {
     rewards: Vec<String>,
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub struct Research {
-    id: String,
-    name: String,
-    description: String,
-    cost: usize,
-    prerequisites: Vec<String>,
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: usize,
+    pub prerequisites: Vec<String>,
+    pub progress: usize,
 }
 
 #[derive(Resource)]
 pub struct Resources {
-    name: String,
-    description: String,
-    amount: usize,
-}
-
-#[derive(Resource)]
-pub struct XcomState {
-    time: usize,
-    research: Vec<Research>,
-    selected_research: Research,
-    resources: Vec<Resources>,
-    assets: XcomSprites,
-}
-
-#[derive(Resource)]
-pub struct XcomSprites {
-    geoMap: Sprite,
+    pub name: String,
+    pub description: String,
+    pub amount: usize,
 }
