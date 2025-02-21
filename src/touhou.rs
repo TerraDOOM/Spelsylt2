@@ -1,7 +1,5 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use bevy_rapier2d::prelude::*;
-
-use crate::xcom;
 
 #[derive(Component, Default)]
 struct TouhouMarker;
@@ -10,7 +8,7 @@ struct PlayerMarker;
 
 pub fn touhou_plugin(app: &mut App) {
     app.add_plugins((RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0)))
-        .add_systems(Startup, setup);
+        .add_systems(OnEnter(GameState::Touhou), setup);
 }
 
 pub fn setup(mut commands: Commands) {}
