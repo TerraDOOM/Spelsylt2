@@ -18,16 +18,15 @@ fn main() {
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(xcom::xcom_plugin)
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .insert_state(GameState)
+        .init_state::<GameState>()
         .add_systems(Startup, global_setup)
         .add_systems(
             Update,
             (
                 enter_xcom.run_if(input_just_pressed(KeyCode::KeyX)),
-                enter_touhou
-                    .run_if(input_just_pressed(KeyCode::KeyT))
-                    .run_if(in_state(GameState::Menu)),
-            ),
+                enter_touhou.run_if(input_just_pressed(KeyCode::KeyT)),
+            )
+                .run_if(in_state(GameState::Menu)),
         )
         .add_systems(OnExit(GameState::Menu), destroy_bg)
         .run();
