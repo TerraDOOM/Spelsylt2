@@ -19,6 +19,8 @@ struct XcomObject;
 pub struct XcomResources {
     geo_map: Handle<Image>,
     placeholder: Handle<Image>,
+    button_normal: Handle<Image>,
+    button_normal_hover: Handle<Image>,
     font: Handle<Font>,
 }
 
@@ -31,40 +33,29 @@ pub struct XcomState {
     assets: XcomResources,
 }
 
-const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+#[derive(Component)]
+struct ButtonLink(String);
 
 fn button_system(
     mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &mut BorderColor,
-            &Children,
-        ),
+        (&Interaction, &mut ImageNode, &Children),
         (Changed<Interaction>, With<Button>),
     >,
     mut text_query: Query<&mut Text>,
+    context: ResMut<XcomState>,
 ) {
-    for (interaction, mut color, mut border_color, children) in &mut interaction_query {
+    for (interaction, mut sprite, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
-                **text = "Press".to_string();
-                *color = PRESSED_BUTTON.into();
-                border_color.0 = Color::srgb(1.0, 0.0, 0.0);
+                sprite.image = context.assets.button_normal_hover.clone();
             }
             Interaction::Hovered => {
-                **text = "Hover".to_string();
-                *color = HOVERED_BUTTON.into();
-                border_color.0 = Color::WHITE;
+                sprite.image = context.assets.button_normal_hover.clone();
             }
             Interaction::None => {
-                **text = "Button".to_string();
-                *color = NORMAL_BUTTON.into();
-                border_color.0 = Color::BLACK;
+                sprite.image = context.assets.button_normal.clone();
             }
         }
     }
@@ -110,30 +101,29 @@ fn on_xcom(
         .spawn(Node {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+            right: Val::Vw(0.0),
+            align_items: AlignItems::FlexEnd,
+            justify_content: JustifyContent::FlexEnd,
+            flex_direction: FlexDirection::Column,
             ..default()
         })
         .with_children(|parent| {
-            parent
+            parent //The clock button
                 .spawn((
                     Button,
                     Node {
-                        width: Val::Px(150.0),
-                        height: Val::Px(65.0),
-                        border: UiRect::all(Val::Px(5.0)),
+                        width: Val::Px(256.0),
+                        height: Val::Px(256.0),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
                         // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    BorderColor(Color::BLACK),
-                    BorderRadius::MAX,
-                    BackgroundColor(NORMAL_BUTTON),
+                    ImageNode::new(context.assets.button_normal.clone()),
                 ))
                 .with_child((
-                    Text::new("Button"),
+                    Text::new("1985\n Apr 5th \n 10:49"),
                     TextFont {
                         font: context.assets.font.clone(),
                         font_size: 33.0,
@@ -141,7 +131,48 @@ fn on_xcom(
                     },
                     TextColor(Color::srgb(0.9, 0.9, 0.9)),
                 ));
+
+            make_button(
+                parent,
+                "Research".to_string(),
+                "TODO".to_string(),
+                &(*context),
+            );
+            make_button(
+                parent,
+                "Production".to_string(),
+                "TODO".to_string(),
+                &*context,
+            );
+            make_button(parent, "Save".to_string(), "TODO".to_string(), &*context);
+            make_button(parent, "Load".to_string(), "TODO".to_string(), &*context);
         });
+}
+
+fn make_button(parent: &mut ChildBuilder, text: String, link_id: String, context: &XcomState) {
+    parent
+        .spawn((
+            Button,
+            Node {
+                width: Val::Px(256.0),
+                height: Val::Px(64.0),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ImageNode::new(context.assets.button_normal.clone()),
+        ))
+        .with_child((
+            Text::new(text),
+            TextFont {
+                font: context.assets.font.clone(),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+        ));
 }
 
 fn off_xcom() {}
@@ -150,6 +181,8 @@ fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     XcomResources {
         geo_map: asset_server.load("placeholder_geomap.png"),
         placeholder: asset_server.load("mascot.png"),
+        button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
+        button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
