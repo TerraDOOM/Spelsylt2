@@ -1,2 +1,2 @@
-pub use crate::{touhou, types::*, xcom, GameState};
-pub use bevy::prelude::*;
+pub(crate) use crate::{touhou, types::*, xcom, GameState};
+pub(crate) use bevy::prelude::*;
