@@ -1,0 +1,3 @@
+struct TouhouMarker;
+
+g
