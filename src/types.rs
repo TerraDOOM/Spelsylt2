@@ -21,7 +21,7 @@ pub struct Research {
 
 #[derive(Resource)]
 pub struct Resources {
-    name: String,
-    description: String,
-    amount: usize,
+    pub name: String,
+    pub description: String,
+    pub amount: usize,
 }

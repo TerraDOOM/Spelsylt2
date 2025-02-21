@@ -1,6 +1,9 @@
 use crate::prelude::*;
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
+
+    app.add_systems(OnEnter(GameState::Xcom), on_xcom)
+        .add_systems(Update, update.run_if(in_state(GameState::Xcom)));
 }
 
 #[derive(Component)]
@@ -24,21 +27,35 @@ pub struct XcomState {
     assets: XcomResources,
 }
 
-pub fn setup(
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let assets = load_Xcom_assets(&asset_server);
+    commands.insert_resource(XcomState {
+        time: 0,
+        research: vec![],
+        selected_research: None,
+        resources: vec![Resources {
+            name: "Scientists".to_string(),
+            description: "A talented researcher of the arcane".to_string(),
+            amount: 5,
+        }],
+        assets,
+    });
+}
+
+fn on_xcom(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    context: ResMut<XcomState>,
     window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
 ) {
     let width = window.resolution.width();
     let height = window.resolution.height();
 
-    let assets = load_Xcom_assets(&asset_server);
-
     let background_size = Some(Vec2::new(width, height));
     let background_position = Vec2::new(0.0, 0.0);
+
     commands.spawn((
         dbg!(Sprite {
-            image: assets.geo_map.clone(),
+            image: context.assets.geo_map.clone(),
             custom_size: background_size,
             ..Default::default()
         }),
@@ -46,19 +63,13 @@ pub fn setup(
         Background,
         XcomObject,
     ));
-
-    commands.insert_resource(XcomState {
-        time: 0,
-        research: vec![],
-        selected_research: None,
-        resources: vec![],
-        assets,
-    });
 }
+
+fn off_xcom() {}
 
 fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     XcomResources {
-        geo_map: asset_server.load("mascot.png"),
+        geo_map: asset_server.load("placeholder_geomap.png"),
         placeholder: asset_server.load("mascot.png"),
     }
 }
@@ -70,7 +81,7 @@ fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
     }
 }
 
-fn on_time_tick(context: ResMut, delta_time: usize) {
+fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
     //Chance for invasion/mission TODO
     //Tick research and production
 
