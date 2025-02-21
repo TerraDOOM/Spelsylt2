@@ -1,6 +1,53 @@
-fn xcom_init() {}
+use crate::prelude::*;
+pub fn xcom_plugin(app: &mut App) {
+    app.add_systems(Startup, setup);
+}
 
-fn on_xcom_sim(
+#[derive(Component)]
+struct Background;
+
+#[derive(Component)]
+struct XcomObject;
+
+pub fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    let window = windows.single();
+    let width = window.resolution.width();
+    let height = window.resolution.height();
+
+    commands.insert_resource(XcomState {
+        time: 0,
+        research: vec![],
+        selected_research: None,
+        resources: vec![],
+        assets: load_Xcom_assets(asset_server),
+    });
+
+    let background_size = Some(Vec2::new(width, height));
+    let background_position = Vec2::new(0.0, 0.0);
+    commands.spawn((
+        dbg!(Sprite {
+            image: state.assets.geoMap,
+            custom_size: background_size,
+            ..Default::default()
+        }),
+        Transform::from_translation(background_position.extend(-1.0)),
+        Background,
+        XcomObject,
+    ));
+}
+
+fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomSprites {
+    XcomSprites {
+        geoMap: asset_server.load("assets/placeholder_geomap.jpg"),
+        placeholder: asset_server.load("assets/placeholder_geomap.jpg"),
+    }
+}
+
+/*fn on_xcom_sim(
     mut commands: Commands,
     mut tmp: ResMut<NextState<DatingState>>,
     mut did_init: Local<bool>,
@@ -45,10 +92,4 @@ fn on_xcom_sim(
         Portrait,
         DatingObj,
     ));
-}
-
-fn load_Xcom_assets(size: Vec2, asset_server: &Res<AssetServer>) -> XcomSprites {
-    XcomSprites {
-        geoMap: asset_server.load("assets/placeholder_geomap.jpg"),
-    }
-}
+}*/

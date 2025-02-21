@@ -28,12 +28,13 @@ pub struct Resources {
 pub struct XcomState {
     time: usize,
     research: Vec<Research>,
-    selected_research: Research,
+    selected_research: Option<Research>,
     resources: Vec<Resources>,
     assets: XcomSprites,
 }
 
 #[derive(Resource)]
 pub struct XcomSprites {
-    geoMap: Sprite,
+    geoMap: Handle<Image>,
+    placeholder: Handle<Image>,
 }

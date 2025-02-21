@@ -2,6 +2,7 @@ use bevy::{prelude::*, winit::WinitSettings};
 
 mod touhou;
 mod xcom;
+mod types;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 enum GameState {
