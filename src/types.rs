@@ -1,3 +1,5 @@
+use bevy::prelude::*;
+
 #[derive(Resource)]
 pub struct Mission {
     id: String,
@@ -8,7 +10,6 @@ pub struct Mission {
     rewards: Vec<String>,
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub struct Research {
     id: String,
     name: String,
