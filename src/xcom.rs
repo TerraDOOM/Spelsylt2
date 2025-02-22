@@ -38,8 +38,17 @@ pub struct XcomState {
     assets: XcomResources,
 }
 
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum ButtonPath {
+    MainMenu,
+    ScienceMenu,
+    ProductionMenu,
+    MissionMenu,
+}
+
 #[derive(Component)]
-struct ButtonLink(String);
+struct ButtonLink(ButtonPath);
 
 fn button_system(
     mut interaction_query: Query<
@@ -54,9 +63,23 @@ fn button_system(
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
-                log::info!(link);
-
+                //                log::info!(link);
                 sprite.image = context.assets.button_normal_hover.clone();
+
+                match (link).0 {
+                    ButtonPath::MainMenu => {
+                        **text = "Main menu".to_string();
+                    }
+                    ButtonPath::ScienceMenu => {
+                        **text = "Science menu".to_string();
+                    }
+                    ButtonPath::ProductionMenu => {
+                        **text = "Prodcution menu".to_string();
+                    }
+                    ButtonPath::MissionMenu => {
+                        **text = "Mission menu".to_string();
+                    }
+                }
             }
             Interaction::Hovered => {
                 sprite.image = context.assets.button_normal_hover.clone();
@@ -129,7 +152,7 @@ fn on_xcom(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    ImageNode::new(context.assets.button_normal.clone()),
+                    ImageNode::new(context.assets.button_normal_big.clone()),
                 ))
                 .with_child((
                     Text::new("1985\nApr 5th\n10:49"),
@@ -144,21 +167,21 @@ fn on_xcom(
             make_button(
                 parent,
                 "Research".to_string(),
-                "TODO".to_string(),
+                ButtonPath::ScienceMenu,
                 &(*context),
             );
             make_button(
                 parent,
                 "Production".to_string(),
-                "TODO".to_string(),
+                ButtonPath::ProductionMenu,
                 &*context,
             );
-            make_button(parent, "Save".to_string(), "TODO".to_string(), &*context);
-            make_button(parent, "Load".to_string(), "TODO".to_string(), &*context);
+            make_button(parent, "Save".to_string(), ButtonPath::MainMenu, &*context);
+            make_button(parent, "Load".to_string(), ButtonPath::MainMenu, &*context);
         });
 }
 
-fn make_button(parent: &mut ChildBuilder, text: String, link_id: String, context: &XcomState) {
+fn make_button(parent: &mut ChildBuilder, text: String, link_id: ButtonPath, context: &XcomState) {
     parent
         .spawn((
             Button,
@@ -193,7 +216,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         placeholder: asset_server.load("mascot.png"),
         button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
         button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
-        button_normal_big: asset_server.load("Xcom_hud/Main_button_clicked.png"),
+        button_normal_big: asset_server.load("Xcom_hud/clock.png"),
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
