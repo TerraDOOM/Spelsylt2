@@ -134,7 +134,7 @@ fn nuke_touhou(
 fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(PlayerAssets {
         dead: asset_server.load("dead.png"),
-        alive: asset_server.load("Xcom_hud\\playerrocket1.png"),
+        alive: asset_server.load("Xcom_hud/Playerrocket1.png"),
     })
 }
 
@@ -241,7 +241,6 @@ pub fn create_gameplay_rect(mut commands: Commands) {
 pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     commands.spawn(Player {
         sprite: Sprite {
-
             custom_size: Some(Vec2::new(100.0, 100.0)),
             image: player_assets.alive.clone(),
             ..Default::default()
@@ -295,9 +294,9 @@ fn do_movement(
     let dx = right + -left;
 
     if down > 0.0 {
-        sprite.image = asset_server.load("Xcom_hud\\playerrocket2.png");
+        sprite.image = asset_server.load("Xcom_hud/Playerrocket2.png");
     } else {
-        sprite.image = asset_server.load("Xcom_hud\\playerrocket1.png");
+        sprite.image = asset_server.load("Xcom_hud/Playerrocket1.png");
     }
 
     let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
