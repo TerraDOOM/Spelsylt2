@@ -92,6 +92,38 @@ fn make_button(
         ));
 }
 
+fn make_science_button(parent: &mut ChildBuilder, research: &Research, context: &XcomState) {
+    parent
+        .spawn((
+            Button,
+            ButtonLink(ButtonPath::StartResearch),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(80.0),
+                ..default_button_node()
+            },
+            ScienceSelect(research.id.clone()),
+            ImageNode::new(context.assets.button_normal.clone()),
+        ))
+        .insert(PickingBehavior {
+            should_block_lower: false,
+            ..default()
+        })
+        .with_child((
+            Text::new(research.name.clone()),
+            TextFont {
+                font: context.assets.font.clone(),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.9)),
+            PickingBehavior {
+                should_block_lower: false,
+                ..default()
+            },
+        ));
+}
+
 pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(
         context,
@@ -100,14 +132,14 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
             //Top 30% of the screen for found research and icons
             parent
                 .spawn(Node {
-                    width: Val::Percent(50.0),
+                    width: Val::Percent(40.0),
                     height: Val::Percent(30.0),
                     top: Val::Vh(0.0),
-                    flex_direction: FlexDirection::Row,
+                    flex_direction: FlexDirection::Column,
                     ..default_button_node()
                 })
                 .with_children(|research_icon| {
-                    for unlocked_technology in &context.research {
+                    for unlocked_technology in &context.finished_research {
                         let icon = context.assets.icons[&unlocked_technology.id].clone();
                         make_icon(research_icon, icon, &(*context));
                     }
@@ -115,23 +147,54 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
 
             parent
                 .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_self: AlignSelf::Stretch,
+                    height: Val::Percent(25.),
+                    top: Val::Percent(8.),
+                    ..default()
+                })
+                .with_child((
+                    Text::new("Currently researching X"),
+                    CurrentResearch,
+                    TextFont {
+                        font: context.assets.font.clone(),
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.7, 0.7, 0.9)),
+                ));
+
+            parent
+                .spawn(Node {
                     top: Val::Percent(30.0),
                     flex_direction: FlexDirection::Column,
                     align_self: AlignSelf::Stretch,
                     height: Val::Percent(70.),
+                    left: -Val::Percent(20.),
+                    width: Val::Percent(60.0),
                     overflow: Overflow::scroll_y(),
                     ..default()
                 })
                 .with_children(|option_box| {
                     //Make the research dynamic? TODO
 
-                    let mut make_science_button = |name: &'static str, id| {
+                    /*                    let mut make_science_button = |name: &'static str, id, science_select| {
                         let height = Val::Px(80.0);
-                        make_button(option_box, name, id, &*context, Val::Percent(100.0), height);
-                    };
 
-                    make_science_button("Heavy Frame", ButtonPath::ScienceMenu);
-                    make_science_button("Hover Magic1", ButtonPath::ScienceMenu);
+                            option_box,
+                            name,
+                            id,
+                            &*context,
+                            Val::Percent(100.0),
+                            height,
+                            science_select,
+                        );
+                    };*/
+
+                    for potential_research in &context.possible_research {
+                        make_science_button(option_box, &potential_research, &*context);
+                    }
+                    /*make_science_button("Hover Magic1", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic2", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic3", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic4", ButtonPath::ScienceMenu);
@@ -153,8 +216,15 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     make_science_button("Hover Magic14", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic15", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic16", ButtonPath::ScienceMenu);
-                    make_science_button("Ace Frame", ButtonPath::MainMenu);
-                    make_science_button("Exit", ButtonPath::MainMenu);
+                    make_science_button("Ace Frame", ButtonPath::MainMenu);*/
+                    make_button(
+                        option_box,
+                        "Exit",
+                        ButtonPath::MainMenu,
+                        &*context,
+                        Val::Percent(100.),
+                        Val::Px(128.),
+                    );
                 });
         },
         false,
@@ -222,7 +292,7 @@ pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
                     ..default_button_node()
                 })
                 .with_children(|production_area| {
-                    for unlocked_technology in &context.research {
+                    for unlocked_technology in &context.finished_research {
                         let icon = context.assets.icons[&unlocked_technology.id].clone();
                         make_icon(production_area, icon, &(*context));
                     }

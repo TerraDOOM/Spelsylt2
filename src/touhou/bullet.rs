@@ -110,6 +110,9 @@ pub struct Weapon {
 pub(crate) enum BulletType {
     Normal(NormalBullet),
     Rotating(RotatingBullet),
+    Homing(HomingBullet),
+    Stutter(StutterBullet),
+    Wave(WaveBullet),
 }
 
 impl Weapon {
@@ -186,6 +189,7 @@ pub struct BulletBundle {
     pub transform: Transform,
     pub collider: Collider,
     pub sprite: Sprite,
+    pub velocity: Velocity,
     pub lifetime: Lifetime,
     pub markers: (BulletMarker, TouhouMarker),
 }
@@ -203,6 +207,32 @@ pub struct NormalBullet {
     pub velocity: Vec2,
 }
 
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct HomingBullet {
+    pub rotation_speed: f32,
+    pub seeking_time: f32,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct StutterBullet {
+    pub wait_time: f32,
+    pub initial_velocity: Vec2,
+    pub has_started: bool,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct WaveBullet {
+    pub true_velocity: Vec2,
+    pub sine_mod: f32,
+}
+
+#[derive(Debug, Copy, Clone, Component)]
+pub struct RotatingBullet {
+    pub origin: Vec2,
+    // rotation speed in radians/s
+    pub rotation_speed: f32,
+}
+
 fn circle(t: &Transform, c: &Collider) -> Circle {
     super::Circle::new(c.radius, t.translation.xy())
 }
@@ -215,6 +245,11 @@ pub struct Phasing;
 
 #[derive(Event)]
 pub struct PlayerHit(Entity);
+
+#[derive(Debug, Clone, Component, Default)]
+pub struct Velocity {
+    velocity: Vec2,
+}
 
 #[derive(Component)]
 pub struct AltFire;
@@ -322,13 +357,6 @@ fn move_normal_bullets(mut bullet_query: Query<(&NormalBullet, &mut Transform)>)
     }
 }
 
-#[derive(Debug, Copy, Clone, Component)]
-pub struct RotatingBullet {
-    pub origin: Vec2,
-    // rotation speed in radians/s
-    pub rotation_speed: f32,
-}
-
 fn move_rotating_bullets(
     time: Res<Time>,
     mut bullet_query: Query<(&RotatingBullet, Option<&mut NormalBullet>, &mut Transform)>,
@@ -352,6 +380,45 @@ fn move_rotating_bullets(
         }
 
         trans.translation = new_pos.extend(0.0);
+    }
+}
+
+fn move_homing_bullets(
+    time: Res<Time>,
+    mut bullet_query: Query<(&HomingBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+    player: PlayerQ<&Transform>,
+) {
+    let playerpos = player.into_inner();
+
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() > bullet.seeking_time {
+            continue;
+        }
+        let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize();
+        let rotation = bullet.rotation_speed * time.delta_secs();
+
+        velocity.velocity = velocity.velocity.rotate_towards(angle, rotation);
+    }
+}
+
+fn move_stutter_bullets(
+    mut bullet_query: Query<(&mut StutterBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() < bullet.wait_time {
+            velocity.velocity = Vec2::ZERO;
+        } else if !bullet.has_started {
+            velocity.velocity = bullet.initial_velocity;
+            bullet.has_started = true;
+        }
+    }
+}
+
+fn move_wave_bullets(
+    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        velocity.velocity = bullet.true_velocity * (lifetime.0.elapsed_secs()*bullet.sine_mod).sin();
     }
 }
 
@@ -381,6 +448,18 @@ impl AsBulletKind for NormalBullet {
     }
 }
 
+impl AsBulletKind for HomingBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Homing(self)
+    }
+}
+
+impl AsBulletKind for StutterBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Stutter(self)
+    }
+}
+
 impl AsBulletKind for BulletType {
     fn as_bullet_type(self) -> BulletType {
         self
@@ -394,6 +473,9 @@ impl<'a> BulletCommandExt for EntityCommands<'a> {
         match kind {
             BulletType::Normal(normal) => self.insert(normal),
             BulletType::Rotating(rotating) => self.insert(rotating),
+            BulletType::Homing(homing) => self.insert(homing),
+            BulletType::Stutter(stutter) => self.insert(stutter),
+            BulletType::Wave(wave) => self.insert(wave),
         }
     }
 }
