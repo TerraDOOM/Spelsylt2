@@ -22,7 +22,7 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                         width: Val::Px(256.0),
                         height: Val::Px(256.0),
                         // horizontally center child text
-                        justify_content: JustifyContent::FlexEnd,
+                        justify_content: JustifyContent::Center,
                         // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
@@ -129,54 +129,60 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     make_science_button("Exit", ButtonPath::MainMenu);
                 });
         },
+        false,
     );
 }
 
 pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
-    commands.spawn_hud(context, ProdScreen, |parent| {
-        //Top 30% of the screen for found research and icons
-        parent.spawn((
-            (Node {
-                width: Val::Percent(50.0),
-                height: Val::Percent(30.0),
-                top: Val::Vh(5.0),
-                flex_direction: FlexDirection::Row,
-                ..default_button_node()
-            }),
-            Text::new("Producing: "),
-            TextFont {
-                font: context.assets.font.clone(),
-                font_size: 33.0,
-                ..default()
-            },
-            TextColor(Color::srgb(0.9, 0.9, 0.9)),
-        ));
+    commands.spawn_hud(
+        context,
+        ProdScreen,
+        |parent| {
+            //Top 30% of the screen for found research and icons
+            parent.spawn((
+                (Node {
+                    width: Val::Percent(50.0),
+                    height: Val::Percent(30.0),
+                    top: Val::Vh(5.0),
+                    flex_direction: FlexDirection::Row,
+                    ..default_button_node()
+                }),
+                Text::new("Producing: "),
+                TextFont {
+                    font: context.assets.font.clone(),
+                    font_size: 33.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            ));
 
-        parent
-            .spawn(Node {
-                width: Val::Percent(50.0),
-                height: Val::Percent(70.0),
-                bottom: Val::Vh(0.0),
-                flex_direction: FlexDirection::Column,
-                ..default_button_node()
-            })
-            .with_children(|production_area| {
-                for unlocked_technology in &context.research {
-                    let icon = context.assets.icons[&unlocked_technology.id].clone();
-                    make_icon(production_area, icon, &(*context));
-                }
-            });
-    });
+            parent
+                .spawn(Node {
+                    width: Val::Percent(50.0),
+                    height: Val::Percent(70.0),
+                    bottom: Val::Vh(0.0),
+                    flex_direction: FlexDirection::Column,
+                    ..default_button_node()
+                })
+                .with_children(|production_area| {
+                    for unlocked_technology in &context.research {
+                        let icon = context.assets.icons[&unlocked_technology.id].clone();
+                        make_icon(production_area, icon, &(*context));
+                    }
+                });
+        },
+        false,
+    );
 }
 
 trait UiExt {
-    fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F)
+    fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F, row: bool)
     where
         F: for<'r> FnOnce(&mut ChildBuilder<'r>);
 }
 
 impl<'a, 'b> UiExt for Commands<'a, 'b> {
-    fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F)
+    fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F, row: bool)
     where
         F: for<'r> FnOnce(&mut ChildBuilder<'r>),
     {
@@ -200,7 +206,11 @@ impl<'a, 'b> UiExt for Commands<'a, 'b> {
                         height: Val::Vh(80.0),
                         left: Val::Vw(10.0),
                         top: Val::Vh(10.0),
-                        flex_direction: FlexDirection::Row,
+                        flex_direction: (if (row) {
+                            FlexDirection::Column
+                        } else {
+                            FlexDirection::Row
+                        }),
                         ..default()
                     },
                     ImageNode::new(ctx.assets.backpanel.clone()),
@@ -221,69 +231,142 @@ fn default_button_node() -> Node {
 }
 
 pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
-    commands.spawn_hud(context, MissionScreen, |parent| {
-        //Top 30% of the screen for found research and icons
+    commands.spawn_hud(
+        context,
+        MissionScreen,
+        |parent| {
+            //Top 30% of the screen for found research and icons
 
-        let center: f32 = 32.0;
-        parent
-            .spawn((
-                Node {
-                    width: Val::Px(512.0),
-                    height: Val::Px(512.0),
-                    top: Val::Vh(0.0),
-                    flex_direction: FlexDirection::Row,
-                    ..default_button_node()
-                },
-                ImageNode::new(context.assets.loadout.clone()),
-            ))
-            .with_children(|ship_box| {
-                make_ship_icon(
-                    ship_box,
-                    context.assets.button_green.clone(),
-                    &(*context),
-                    Val::Px(-70.0 + center),
-                    Val::Px(-30.0),
-                );
-                make_ship_icon(
-                    ship_box,
-                    context.assets.button_green.clone(),
-                    &(*context),
-                    Val::Px(70.0 + center),
-                    Val::Px(-30.0),
-                );
-                make_ship_icon(
-                    ship_box,
-                    context.assets.button_green.clone(),
-                    &(*context),
-                    Val::Px(center - 256.0),
-                    Val::Px(-120.0),
-                );
-            });
+            let center: f32 = 40.0;
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Px(512.0),
+                        height: Val::Px(512.0),
+                        top: Val::Vh(0.0),
+                        flex_direction: FlexDirection::Column,
+                        ..default_button_node()
+                    },
+                    ImageNode::new(context.assets.loadout.clone()),
+                ))
+                .with_children(|ship_box| {
+                    make_ship_icon(
+                        ship_box,
+                        context.assets.button_green.clone(),
+                        &(*context),
+                        Val::Px(0.0),
+                        Val::Px(0.0),
+                        Slot::Front,
+                    );
+                    make_ship_icon(
+                        ship_box,
+                        context.assets.button_green.clone(),
+                        &(*context),
+                        Val::Px(0.0),
+                        Val::Px(32.0),
+                        Slot::Core1,
+                    );
+                    make_ship_icon(
+                        ship_box,
+                        context.assets.button_green.clone(),
+                        &(*context),
+                        Val::Px(0.0),
+                        Val::Px(64.0),
+                        Slot::Engine,
+                    );
+                    make_ship_icon(
+                        ship_box,
+                        context.assets.button_green.clone(),
+                        &(*context),
+                        Val::Px(-96.0),
+                        Val::Px(-32.0),
+                        Slot::LeftWing1,
+                    );
+                    make_ship_icon(
+                        ship_box,
+                        context.assets.button_green.clone(),
+                        &(*context),
+                        Val::Px(96.0),
+                        Val::Px(-96.0),
+                        Slot::RightWing1,
+                    );
+                });
+            //Equipment board
+            parent
+                .spawn(
+                    (Node {
+                        width: Val::Percent(40.0),
+                        height: Val::Percent(50.0),
+                        left: Val::Px(128.0),
+                        flex_direction: FlexDirection::Column,
+                        ..default_button_node()
+                    }),
+                )
+                .with_children(|option_box| {
+                    //Only done when spawning! TODO
 
-        parent
-            .spawn(
-                (Node {
-                    width: Val::Percent(50.0),
-                    height: Val::Percent(70.0),
-                    bottom: Val::Vh(0.0),
-                    flex_direction: FlexDirection::Column,
-                    ..default_button_node()
-                }),
-            )
-            .with_children(|option_box| {
-                //Make the research dynamic? TODO
-
-                make_button(
-                    option_box,
-                    "Exit",
-                    ButtonPath::MainMenu,
-                    &*context,
-                    Val::Percent(80.0),
-                    Val::Percent(20.0),
-                );
-            });
-    });
+                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                    option_box.spawn((
+                        Node {
+                            top: Val::Px(-64.0),
+                            left: Val::Px(64.0),
+                            ..default()
+                        },
+                        Text::new("x5"),
+                        TextFont {
+                            font: context.assets.font.clone(),
+                            font_size: 33.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
+                    ));
+                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                });
+            parent
+                .spawn(
+                    (Node {
+                        width: Val::Percent(40.0),
+                        height: Val::Percent(25.0),
+                        top: Val::Percent(50.0),
+                        left: -Val::Percent(12.5),
+                        flex_direction: FlexDirection::Row,
+                        ..default_button_node()
+                    }),
+                )
+                .with_children(|option_box| {
+                    make_button(
+                        option_box,
+                        "Start mission",
+                        ButtonPath::MainMenu,
+                        &*context,
+                        Val::Percent(50.0),
+                        Val::Percent(20.0),
+                    );
+                    make_button(
+                        option_box,
+                        "Exit",
+                        ButtonPath::MainMenu,
+                        &*context,
+                        Val::Percent(50.0),
+                        Val::Percent(20.0),
+                    );
+                });
+        },
+        false,
+    );
 }
+
+/*
+//Not called yet
+fn update_loadout_hud(Query<
+        (&Interaction, &ShipComponent),
+    (Changed::<Interaction>, With<ShipComponent>),
+    >,
+                      context: ResMut<XcomState>,) {
+
+}*/
 
 fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &XcomState) {
     parent
@@ -317,6 +400,7 @@ fn make_ship_icon(
     context: &XcomState,
     x: Val,
     y: Val,
+    slot: Slot,
 ) {
     parent
         .spawn((
@@ -324,22 +408,14 @@ fn make_ship_icon(
                 width: Val::Px(64.0),
                 height: Val::Px(64.0),
                 left: x,
-                bottom: y,
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                margin: UiRect {
-                    left: Val::Px(8.0),
-                    right: Val::Px(8.0),
-                    top: Val::Px(8.0),
-                    bottom: Val::Px(8.0),
-                },
+                top: y,
                 ..default()
             },
+            ShipComponent(slot),
             ImageNode::new(context.assets.button_green.clone()),
         ))
         .with_child((
+            LoadoutIcon,
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),

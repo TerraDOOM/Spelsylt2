@@ -87,6 +87,9 @@ pub struct XcomObject;
 #[derive(Component)]
 pub struct Clock;
 
+#[derive(Component)]
+pub struct ShipComponent(Slot);
+
 #[derive(Resource)]
 pub struct XcomResources {
     pub geo_map: Handle<Image>,
@@ -111,6 +114,7 @@ pub struct XcomState {
     pub resources: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
     pub active_missions: Vec<Mission>,
+    pub loudout: HashMap<Slot, Option<ResourceType>>,
     pub timer: Timer,
 }
 
@@ -121,6 +125,16 @@ pub enum ButtonPath {
     ScienceMenu,
     ProductionMenu,
     MissionMenu,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Slot {
+    Front,
+    Core1,
+    Engine,
+    LeftWing1,
+    RightWing1,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -137,6 +151,9 @@ pub struct ButtonLink(pub ButtonPath);
 
 #[derive(Component)]
 struct BackDropFade;
+
+#[derive(Component)]
+struct LoadoutIcon;
 
 fn button_system(
     mut interaction_query: Query<
@@ -219,6 +236,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         active_missions: vec![],
         selected_research: None,
         selected_production: None,
+        loudout: HashMap::from([
+            (Slot::Front, Some(Pilot)),
+            (Slot::Engine, Some(Engine_T1)),
+            (Slot::Core1, None),
+            (Slot::LeftWing1, Some(Gun_machinegun)),
+            (Slot::RightWing1, Some(Gun_Rocket)),
+        ]),
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
         resources: vec![
             Resources {
@@ -384,7 +408,7 @@ fn update(
     context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
     let engineers: usize = context.resources[&Engineer].amount.clone();
-    context.time += 1;
+    context.time += 5;
     if let Some(selected_research) = &mut context.selected_research {
         selected_research.progress += scientists;
         if (selected_research.progress > selected_research.cost) {
