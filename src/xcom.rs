@@ -206,7 +206,7 @@ fn quit_hud_element_system(
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let assets = load_xcom_assets(&asset_server);
     commands.insert_resource(XcomState {
-        time: 0,
+        time: 371520,
         research: vec![Research {
             id: Tech::HeavyBody,
             name: "Heavy Body".to_string(),
@@ -316,7 +316,24 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
 }
 
 fn time_to_date(time: usize) -> String {
-    format!("1985\nSep 15\n{}:{}", time / 60, time % 60)
+    let mut month = "Jan".to_owned();
+    let mut day_reduction = 0;
+    match (time/(24*60))%365 {
+        32..=59 => { month = "Feb".to_owned(); day_reduction = 31; }
+        60..=90 => { month = "Mar".to_owned(); day_reduction = 59; }
+        91..=120 => { month = "Apr".to_owned(); day_reduction = 90; }
+        121..=151 => { month = "May".to_owned(); day_reduction = 120; }
+        152..=181 => { month = "Jun".to_owned(); day_reduction = 151; }
+        182..=212 => { month = "Jul".to_owned(); day_reduction = 181; }
+        213..=243 => { month = "Aug".to_owned(); day_reduction = 212; }
+        244..=273 => { month = "Sep".to_owned(); day_reduction = 243; }
+        274..=304 => { month = "Oct".to_owned(); day_reduction = 273; }
+        305..=334 => { month = "Nov".to_owned(); day_reduction = 304; }
+        335..=365 => { month = "Dec".to_owned(); day_reduction = 334; }
+        _ => {}
+    }
+    dbg!(time); 
+    format!("{}\n{} {}\n{:02}:{:02}", 1985 + (time / (24*60*365)), month, (time / (24*60)) - day_reduction, (time / 60) % 24, time % 60)
 }
 
 fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
@@ -336,7 +353,7 @@ fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
         //        if (selected_production.progress > selected_production.cost) {
         //TODO popup/Notification?
     }
-    //dbg!(time_to_date(context.time));
+    dbg!(time_to_date(context.time));
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
