@@ -2,6 +2,11 @@ use std::{f32::consts::PI, time::Duration};
 
 use super::*;
 
+#[derive(QueryFilter)]
+struct PlayerBulletFilter(With<BulletMarker>, With<PlayerBullet>);
+#[derive(QueryFilter)]
+struct EnemyBulletFilter(With<BulletMarker>, Without<PlayerBullet>);
+
 pub fn bullet_plugin(app: &mut App) {
     app.add_event::<BulletHit>()
         .add_event::<PlayerHit>()
@@ -109,15 +114,15 @@ fn bullet_spawner(
 }
 
 #[derive(Component)]
-pub struct Weapon {
+pub struct Weapon<B: Bullet> {
     timer: Timer,
     ammo_cost: u32,
-    bullet: BulletBundle,
+    bullet: BulletBundle<B>,
     salted: bool,
 }
 
-impl Weapon {
-    fn spawn_bullet(&mut self, player_pos: Vec2) -> BulletBundle {
+impl<B: Bullet> Weapon<B> {
+    fn spawn_bullet(&mut self, player_pos: Vec2) -> BulletBundle<B> {
         self.timer.reset();
         let new_bullet = BulletBundle {
             transform: Transform {
@@ -180,13 +185,18 @@ fn fire_weapons(
     }
 }
 
+trait Bullet: Component {}
+
+#[derive(Component, Default, Clone)]
+pub struct BulletMarker;
+
 #[derive(Bundle, Default, Clone)]
-pub struct BulletBundle {
+pub struct BulletBundle<B: Bullet> {
     transform: Transform,
     collider: Collider,
     sprite: Sprite,
-    bullet: Bullet,
-    markers: TouhouMarker,
+    bullet: B,
+    markers: (BulletMarker, TouhouMarker),
 }
 
 #[derive(Component, Default)]
@@ -195,7 +205,7 @@ pub struct PlayerBullet {
 }
 
 #[derive(Component, Clone, Default)]
-pub struct Bullet {
+pub struct NormalBullet {
     velocity: Vec2,
 }
 
@@ -246,8 +256,8 @@ fn player_hits(
 fn bullet_bullet_hit(
     mut commands: Commands,
     mut hits: EventReader<BulletHit>,
-    player_bullets: Query<(&Bullet, Option<&Salted>), (With<PlayerBullet>)>,
-    enemy_bullets: Query<(&Bullet), Without<PlayerBullet>>,
+    player_bullets: Query<(&NormalBullet, Option<&Salted>), PlayerBulletFilter>,
+    enemy_bullets: Query<&NormalBullet, EnemyBulletFilter>,
 ) {
     for BulletHit { player, enemy } in hits.read() {
         let Ok((p, salted)) = player_bullets.get(*player) else {
@@ -266,16 +276,13 @@ fn bullet_bullet_hit(
 
 fn check_bullet_bullet(
     mut hits: EventWriter<BulletHit>,
-    player_bullets: Query<
-        (Entity, &Transform, &Collider, &Bullet),
-        (With<PlayerBullet>, Without<Phasing>),
-    >,
-    enemy_bullets: Query<(Entity, &Transform, &Collider, &Bullet), Without<PlayerBullet>>,
+    player_bullets: Query<(Entity, &Transform, &Collider), (PlayerBulletFilter, Without<Phasing>)>,
+    enemy_bullets: Query<(Entity, &Transform, &Collider), EnemyBulletFilter>,
 ) {
-    for (p, p_trans, p_coll, _) in &player_bullets {
+    for (p, p_trans, p_coll) in &player_bullets {
         let player_circle = circle(p_trans, p_coll);
 
-        for (e, e_trans, e_coll, _) in &enemy_bullets {
+        for (e, e_trans, e_coll) in &enemy_bullets {
             let enemy_circle = circle(e_trans, e_coll);
 
             if player_circle.hits(enemy_circle) {
@@ -290,7 +297,10 @@ fn check_bullet_bullet(
 
 fn check_enemy_bullets(
     player: PlayerQ<(&Transform, &Collider)>,
-    bullet_query: Query<(Entity, &Transform, &Collider), (With<Bullet>, Without<PlayerBullet>)>,
+    bullet_query: Query<
+        (Entity, &Transform, &Collider),
+        (With<BulletMarker>, Without<PlayerBullet>),
+    >,
     mut hit_writer: EventWriter<PlayerHit>,
 ) {
     let player_circle = {
@@ -318,7 +328,7 @@ fn despawn_bullets(
     }
 }
 
-fn move_bullets(mut bullet_query: Query<(&mut Bullet, &mut Transform)>) {
+fn move_bullets(mut bullet_query: Query<(&mut NormalBullet, &mut Transform)>) {
     for (mut bullet, mut transform) in &mut bullet_query {
         transform.translation += bullet.velocity.extend(0.0);
     }
