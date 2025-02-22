@@ -223,26 +223,29 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(context, MissionScreen, |parent| {
         //Top 30% of the screen for found research and icons
         parent
-            .spawn(Node {
-                width: Val::Px(256.0),
-                height: Val::Percent(100.0),
-                top: Val::Vh(0.0),
-                flex_direction: FlexDirection::Row,
-                ..default_button_node()
-            })
+            .spawn((
+                Node {
+                    width: Val::Px(512.0),
+                    height: Val::Px(512.0),
+                    top: Val::Vh(0.0),
+                    flex_direction: FlexDirection::Row,
+                    ..default_button_node()
+                },
+                ImageNode::new(context.assets.loadout.clone()),
+            ))
             .with_children(|ship_box| {
                 make_ship_icon(
                     ship_box,
                     context.assets.button_green.clone(),
                     &(*context),
                     Val::Px(20.0),
-                    Val::Px(20.0),
+                    Val::Px(-30.0),
                 );
                 make_ship_icon(
                     ship_box,
                     context.assets.button_green.clone(),
                     &(*context),
-                    Val::Px(210.0),
+                    Val::Px(50.0),
                     Val::Px(20.0),
                 );
             });

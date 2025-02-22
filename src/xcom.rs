@@ -98,6 +98,7 @@ pub struct XcomResources {
     pub button_green_hover: Handle<Image>,
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
+    pub loadout: Handle<Image>,
     pub font: Handle<Font>,
 }
 
@@ -139,15 +140,13 @@ struct BackDropFade;
 
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut ImageNode, &ButtonLink, &Children),
+        (&Interaction, &mut ImageNode, &ButtonLink),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut Text>,
     context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
 ) {
-    for (interaction, mut sprite, link, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
+    for (interaction, mut sprite, link) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
@@ -250,6 +249,7 @@ fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
             border: UiRect::all(Val::Px(5.0)),
             ..default()
         },
+        ImageNode::new(context.assets.button_normal.clone()),
         BorderColor(Color::BLACK),
         BorderRadius::MAX,
         BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
@@ -309,6 +309,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
+        loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
         icons,
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
