@@ -11,7 +11,10 @@ pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
 
     app.add_systems(OnEnter(GameState::Xcom), on_xcom)
-        .add_systems(Update, (button_system).run_if(in_state(GameState::Xcom)))
+        .add_systems(
+            Update,
+            (button_system, update_scroll_position).run_if(in_state(GameState::Xcom)),
+        )
         .add_systems(
             Update,
             (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),

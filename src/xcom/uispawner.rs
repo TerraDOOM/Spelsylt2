@@ -126,41 +126,27 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
             parent
                 .spawn(Node {
                     top: Val::Percent(30.0),
-                    width: Val::Percent(50.0),
-                    height: Val::Percent(70.0),
-                    column_gap: Val::ZERO,
                     flex_direction: FlexDirection::Column,
-                    padding: UiRect {
-                        top: Val::Percent(35.0),
-                        ..default()
-                    },
                     align_self: AlignSelf::Stretch,
-                    overflow: Overflow {
-                        x: OverflowAxis::Clip,
-                        y: OverflowAxis::Scroll,
-                    },
-                    overflow_clip_margin: OverflowClipMargin::border_box(),
-                    ..default_button_node()
+                    height: Val::Percent(70.),
+                    overflow: Overflow::scroll_y(),
+                    ..default()
                 })
                 .with_children(|option_box| {
                     //Make the research dynamic? TODO
 
                     let mut make_science_button = |name: &'static str, id| {
+                        let height = Val::Px(80.0);
                         make_button(
                             option_box,
                             name,
                             id,
                             &*context,
-                            Val::Percent(80.0),
-                            Val::Px(6000.0),
+                            Val::Percent(100.0),
+                            height,
                             Node {
-                                min_height: Val::Px(40.0),
-                                max_height: Val::Px(40.0),
-                                padding: UiRect::ZERO,
-                                margin: UiRect::ZERO,
-                                overflow: Overflow::clip(),
-                                column_gap: Val::Px(0.0),
-                                ..Default::default()
+                                height,
+                                ..default_button_node()
                             },
                         );
                     };
