@@ -15,9 +15,9 @@ enum GameState {
 
 fn main() {
     App::new()
-        .insert_resource(WinitSettings::desktop_app())
-        .add_plugins(xcom::xcom_plugin)
+        .insert_resource(WinitSettings::game())
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins((xcom::xcom_plugin, touhou::touhou_plugin))
         .init_state::<GameState>()
         .add_systems(Startup, global_setup)
         .add_systems(
@@ -36,15 +36,23 @@ fn enter_xcom(mut next_state: ResMut<NextState<GameState>>) {
     next_state.set(GameState::Xcom)
 }
 
-fn enter_touhou(mut next_state: ResMut<NextState<GameState>>) {
-    next_state.set(GameState::Touhou)
+fn enter_touhou(
+    mut next_state: ResMut<NextState<GameState>>,
+    mut commands: Commands,
+    global_camera: Single<Entity, With<GlobalCamera>>,
+) {
+    next_state.set(GameState::Touhou);
+    commands.entity(global_camera.into_inner()).despawn();
 }
 
 #[derive(Component)]
 struct MenuBG;
 
+#[derive(Component)]
+struct GlobalCamera;
+
 fn global_setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2d::default(), GlobalCamera));
 
     commands.spawn((
         Sprite {
