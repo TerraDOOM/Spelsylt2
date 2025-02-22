@@ -318,24 +318,69 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
 fn time_to_date(time: usize) -> String {
     let mut month = "Jan".to_owned();
     let mut day_reduction = 0;
-    match (time/(24*60))%365 {
-        32..=59 => { month = "Feb".to_owned(); day_reduction = 31; }
-        60..=90 => { month = "Mar".to_owned(); day_reduction = 59; }
-        91..=120 => { month = "Apr".to_owned(); day_reduction = 90; }
-        121..=151 => { month = "May".to_owned(); day_reduction = 120; }
-        152..=181 => { month = "Jun".to_owned(); day_reduction = 151; }
-        182..=212 => { month = "Jul".to_owned(); day_reduction = 181; }
-        213..=243 => { month = "Aug".to_owned(); day_reduction = 212; }
-        244..=273 => { month = "Sep".to_owned(); day_reduction = 243; }
-        274..=304 => { month = "Oct".to_owned(); day_reduction = 273; }
-        305..=334 => { month = "Nov".to_owned(); day_reduction = 304; }
-        335..=365 => { month = "Dec".to_owned(); day_reduction = 334; }
+    match (time / (24 * 60)) % 365 {
+        32..=59 => {
+            month = "Feb".to_owned();
+            day_reduction = 31;
+        }
+        60..=90 => {
+            month = "Mar".to_owned();
+            day_reduction = 59;
+        }
+        91..=120 => {
+            month = "Apr".to_owned();
+            day_reduction = 90;
+        }
+        121..=151 => {
+            month = "May".to_owned();
+            day_reduction = 120;
+        }
+        152..=181 => {
+            month = "Jun".to_owned();
+            day_reduction = 151;
+        }
+        182..=212 => {
+            month = "Jul".to_owned();
+            day_reduction = 181;
+        }
+        213..=243 => {
+            month = "Aug".to_owned();
+            day_reduction = 212;
+        }
+        244..=273 => {
+            month = "Sep".to_owned();
+            day_reduction = 243;
+        }
+        274..=304 => {
+            month = "Oct".to_owned();
+            day_reduction = 273;
+        }
+        305..=334 => {
+            month = "Nov".to_owned();
+            day_reduction = 304;
+        }
+        335..=365 => {
+            month = "Dec".to_owned();
+            day_reduction = 334;
+        }
         _ => {}
     }
-    format!("{}\n{} {}\n{:02}:{:02}", 1985 + (time / (24*60*365)), month, (time / (24*60)) - day_reduction, (time / 60) % 24, time % 60)
+    format!(
+        "{}\n{} {}\n{:02}:{:02}",
+        1985 + (time / (24 * 60 * 365)),
+        month,
+        (time / (24 * 60)) - day_reduction,
+        (time / 60) % 24,
+        time % 60
+    )
 }
 
-fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+fn update(
+    mut context: ResMut<XcomState>,
+    real_time: Res<Time>,
+    clock_query: Single<(&mut Children), With<Clock>>,
+    mut text_query: Query<&mut Text>,
+) {
     context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
     let engineers: usize = context.resources[&Engineer].amount.clone();
@@ -352,7 +397,10 @@ fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
         //        if (selected_production.progress > selected_production.cost) {
         //TODO popup/Notification?
     }
-    dbg!(time_to_date(context.time));
+    //dbg!(time_to_date(context.time));
+    //    if clock_query.is_some() {
+    let mut text = text_query.get_mut(clock_query[0]).unwrap();
+    **text = time_to_date(context.time);
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
@@ -361,50 +409,3 @@ fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
 
     //Change hud
 }
-
-/*fn on_xcom_sim(
-    mut commands: Commands,
-    mut tmp: ResMut<NextState<DatingState>>,
-    mut did_init: Local<bool>,
-    mut context: ResMut<DatingContext>,
-    asset_server: Res<AssetServer>,
-) {
-    let window = windows.single();
-    let width = window.resolution.width();
-    let height = window.resolution.height();
-
-    let font = asset_server.load("fonts/Pixelfont/slkscr.ttf");
-    let text_font = TextFont {
-        font: font.clone(),
-        font_size: 50.0,
-        ..default()
-    };
-
-    //Cursor initialisation
-    if let Some(mut background) = background.map(Single::into_inner) {
-        background.color = Color::srgba(1.0, 1.0, 1.0, 1.0);
-    } else {
-        let background_size = Some(Vec2::new(width, height));
-        let background_position = Vec2::new(0.0, 0.0);
-        commands.spawn((
-            dbg!(Sprite {
-                image: asset_server.load("Backgrounds/deeper_deeper_base.png"),
-                custom_size: background_size,
-                ..Default::default()
-            }),
-            Transform::from_translation(background_position.extend(-1.0)),
-            Background,
-            DatingObj,
-        ));
-    }
-
-    let cursor_size = Vec2::new(width / 8.0, width / 8.0);
-    let cursor_position = Vec2::new(0.0, 250.0);
-    let enc = commands.spawn((
-        Sprite::from_color(Color::srgb(0.25, 0.75, 0.25), cursor_size),
-        Transform::from_translation(cursor_position.extend(-0.1)),
-        Cursor(0),
-        Portrait,
-        DatingObj,
-    ));
-}*/

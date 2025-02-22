@@ -114,7 +114,6 @@ fn draw_gizmos(
     area: Res<GameplayRect>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
-
     use bevy::color::palettes::css::RED;
 
     gizmos.rect_2d(

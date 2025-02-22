@@ -1,4 +1,5 @@
-use bevy::{input::common_conditions::*, prelude::*, winit::WinitSettings};
+use bevy::{input::common_conditions::*, prelude::*, winit::UpdateMode, winit::WinitSettings};
+use std::time::Duration;
 
 mod prelude;
 mod touhou;
@@ -32,17 +33,30 @@ fn main() {
         .run();
 }
 
-fn enter_xcom(mut next_state: ResMut<NextState<GameState>>) {
+fn enter_xcom(mut next_state: ResMut<NextState<GameState>>, mut winit: ResMut<WinitSettings>) {
+    set_winit_xcom(winit);
     next_state.set(GameState::Xcom)
 }
 
 fn enter_touhou(
     mut next_state: ResMut<NextState<GameState>>,
     mut commands: Commands,
+    mut winit: ResMut<WinitSettings>,
     global_camera: Single<Entity, With<GlobalCamera>>,
 ) {
+    set_winit_touhou(winit);
     next_state.set(GameState::Touhou);
     commands.entity(global_camera.into_inner()).despawn();
+}
+
+fn set_winit_xcom(mut winit: ResMut<WinitSettings>) {
+    winit.focused_mode = UpdateMode::reactive_low_power(Duration::from_secs(1));
+    winit.unfocused_mode = UpdateMode::reactive_low_power(Duration::from_secs(1));
+}
+
+fn set_winit_touhou(mut winit: ResMut<WinitSettings>) {
+    winit.focused_mode = UpdateMode::Continuous;
+    winit.unfocused_mode = UpdateMode::Continuous;
 }
 
 #[derive(Component)]

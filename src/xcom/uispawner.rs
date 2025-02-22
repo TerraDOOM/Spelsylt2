@@ -28,6 +28,7 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                         ..default()
                     },
                     ImageNode::new(context.assets.button_normal_big.clone()),
+                    Clock,
                 ))
                 .with_child((
                     Text::new("1985\nApr 5th\n10:49"),
@@ -222,6 +223,8 @@ fn default_button_node() -> Node {
 pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(context, MissionScreen, |parent| {
         //Top 30% of the screen for found research and icons
+
+        let center: f32 = 32.0;
         parent
             .spawn((
                 Node {
@@ -238,15 +241,22 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     ship_box,
                     context.assets.button_green.clone(),
                     &(*context),
-                    Val::Px(20.0),
+                    Val::Px(-70.0 + center),
                     Val::Px(-30.0),
                 );
                 make_ship_icon(
                     ship_box,
                     context.assets.button_green.clone(),
                     &(*context),
-                    Val::Px(50.0),
-                    Val::Px(20.0),
+                    Val::Px(70.0 + center),
+                    Val::Px(-30.0),
+                );
+                make_ship_icon(
+                    ship_box,
+                    context.assets.button_green.clone(),
+                    &(*context),
+                    Val::Px(center - 256.0),
+                    Val::Px(-120.0),
                 );
             });
 
