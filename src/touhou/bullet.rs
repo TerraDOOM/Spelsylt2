@@ -370,16 +370,19 @@ fn move_rotating_bullets(
 
 fn move_homing_bullets(
     time: Res<Time>,
-    mut bullet_query: Query<(&HomingBullet, Option<&mut NormalBullet>, &mut Transform)>,
+    mut bullet_query: Query<(&HomingBullet, &mut Velocity, &Lifetime, &mut Transform)>,
     player: PlayerQ<&Transform>,
 ) {
     let playerpos = player.into_inner();
 
-    for (bullet, normal, mut trans) in &mut bullet_query {
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() > bullet.seeking_time {
+            continue;
+        }
         let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize();
+        let rotation = bullet.rotation_speed * time.delta_secs();
 
-        let diff = angle.angle_to(normal.unwrap().velocity);
-
+        velocity.velocity = velocity.velocity.rotate_towards(angle, rotation);
     }
 }
 
