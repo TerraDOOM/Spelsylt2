@@ -1,4 +1,6 @@
 use crate::prelude::*;
+use rand::prelude::*;
+use rand::Rng;
 use std::collections::HashMap;
 use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
@@ -109,6 +111,7 @@ pub struct XcomResources {
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
     pub loadout: Handle<Image>,
+    pub circle: Handle<Image>,
     pub font: Handle<Font>,
 }
 
@@ -162,6 +165,9 @@ struct BackDropFade;
 #[derive(Component)]
 struct LoadoutIcon;
 
+#[derive(Component)]
+pub struct MissionMarker;
+
 fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut ImageNode, &ButtonLink),
@@ -175,7 +181,9 @@ fn button_system(
             Interaction::Pressed => {
                 // Depending on button flag, do something
                 //                log::info!(link);
-                sprite.image = context.assets.button_normal_hover.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal_hover.clone();
+                }
                 println!("Pressed a button");
 
                 match (link).0 {
@@ -196,10 +204,14 @@ fn button_system(
                 }
             }
             Interaction::Hovered => {
-                sprite.image = context.assets.button_normal_hover.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal_hover.clone();
+                }
             }
             Interaction::None => {
-                sprite.image = context.assets.button_normal.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal.clone();
+                }
             }
         }
     }
@@ -250,7 +262,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             (Slot::LeftWing1, Some(Gun_machinegun)),
             (Slot::RightWing1, Some(Gun_Rocket)),
         ]),
-        timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
+        timer: Timer::new(Duration::from_secs_f32(1.0), TimerMode::Repeating),
         resources: vec![
             Resources {
                 name: Scientists,
@@ -270,22 +282,40 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
+fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) -> Mission {
     commands.spawn((
         Button,
         ButtonLink(ButtonPath::MissionMenu),
+        MissionMarker,
         Node {
-            width: Val::Px(150.0),
-            height: Val::Px(150.0),
+            width: Val::Px(50.0),
+            height: Val::Px(50.0),
             border: UiRect::all(Val::Px(5.0)),
             ..default()
         },
-        ImageNode::new(context.assets.button_normal.clone()),
-        BorderColor(Color::BLACK),
-        BorderRadius::MAX,
-        BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
+        ImageNode::new(context.assets.circle.clone()),
         ZIndex(1),
     ));
+    Mission {
+        id: "TODO".to_string(),
+        name: "Not implemented yet".to_string(),
+        enemy: "Cirno idk".to_string(),
+        requirment: vec![],
+        consequences: vec![],
+        rewards: vec![],
+        time_left: 20000,
+    }
+}
+
+fn move_enemies(mut marker_query: Query<(&mut Node), (With<MissionMarker>)>, passed_time: f32) {
+    for (mut node) in &mut marker_query {
+        node.left = Val::Px(passed_time.sin() * 400.0 + 400.0);
+        node.top = Val::Px(passed_time.cos() * 200.0 + 400.0);
+    }
+
+    /*    for mission in active_missions {
+        mission.time_left -= passed_time;
+    }*/
 }
 
 fn on_xcom(
@@ -350,6 +380,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             ),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
+        circle: asset_server.load("Enemies/Redcirle.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
@@ -419,27 +450,41 @@ fn update(
     real_time: Res<Time>,
     clock_query: Single<(&mut Children), With<Clock>>,
     mut text_query: Query<&mut Text>,
+    mut marker_query: Query<(&mut Node), (With<MissionMarker>)>,
 ) {
     context.timer.tick(real_time.delta());
-    let scientists: usize = context.resources[&Scientists].amount.clone();
-    let engineers: usize = context.resources[&Engineer].amount.clone();
-    context.time += 5;
-    if let Some(selected_research) = &mut context.selected_research {
-        selected_research.progress += scientists;
-        if (selected_research.progress > selected_research.cost) {
+
+    if context.timer.just_finished() {
+        context.timer.reset();
+
+        let scientists: usize = context.resources[&Scientists].amount.clone();
+        let engineers: usize = context.resources[&Engineer].amount.clone();
+        context.time += 5;
+
+        let mut rng = rand::thread_rng();
+        //        if 0 == rng.gen_range(0..5){
+        //            spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>);
+        // TODO        }
+
+        move_enemies(marker_query, (context.time as f32) / 80.0);
+
+        if let Some(selected_research) = &mut context.selected_research {
+            selected_research.progress += scientists;
+            if (selected_research.progress > selected_research.cost) {
+                //TODO popup/Notification?
+            }
+        }
+        if let Some(selected_production) = &mut context.selected_production {
+            println!("lol");
+            //        selected_production.progress += scientists;
+            //        if (selected_production.progress > selected_production.cost) {
             //TODO popup/Notification?
         }
+        //dbg!(time_to_date(context.time));
+        //    if clock_query.is_some() {
+        let mut text = text_query.get_mut(clock_query[0]).unwrap();
+        **text = time_to_date(context.time);
     }
-    if let Some(selected_production) = &mut context.selected_production {
-        println!("lol");
-        //        selected_production.progress += scientists;
-        //        if (selected_production.progress > selected_production.cost) {
-        //TODO popup/Notification?
-    }
-    //dbg!(time_to_date(context.time));
-    //    if clock_query.is_some() {
-    let mut text = text_query.get_mut(clock_query[0]).unwrap();
-    **text = time_to_date(context.time);
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {

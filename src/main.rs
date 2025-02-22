@@ -53,7 +53,7 @@ fn main() {
 }
 
 fn enter_xcom(mut next_state: ResMut<NextState<GameState>>, mut winit: ResMut<WinitSettings>) {
-    set_winit_xcom(winit);
+    //set_winit_xcom(winit);
     next_state.set(GameState::Xcom)
 }
 
