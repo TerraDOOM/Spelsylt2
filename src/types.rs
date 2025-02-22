@@ -8,6 +8,7 @@ pub struct Mission {
     requirment: Vec<String>,
     consequences: Vec<String>,
     rewards: Vec<String>,
+    time_left: usize,
 }
 
 pub struct Research {

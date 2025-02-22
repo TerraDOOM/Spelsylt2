@@ -1,33 +1,78 @@
 use crate::prelude::*;
 use std::collections::HashMap;
+use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
+
+use crate::uispawner::*;
+
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
 
     app.add_systems(OnEnter(GameState::Xcom), on_xcom)
+        .add_systems(Update, (button_system).run_if(in_state(GameState::Xcom)))
         .add_systems(
             Update,
-            (update, button_system).run_if(in_state(GameState::Xcom)),
+            (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         );
 
     app.init_state::<Focus>();
 
     app.add_systems(OnEnter(Focus::Science), on_science);
     app.add_systems(OnExit(Focus::Science), off_science);
+
+    app.add_systems(OnEnter(Focus::Production), on_prod);
+    app.add_systems(OnExit(Focus::Production), off_prod);
+
+    app.add_systems(OnEnter(Focus::Mission), on_mission);
+    app.add_systems(OnExit(Focus::Mission), off_mission);
 }
 
 #[derive(Component)]
-struct ScienceScreen;
+pub struct ScienceScreen;
+#[derive(Component)]
+pub struct ProdScreen;
+
+#[derive(Component)]
+pub struct MissionScreen;
 
 pub fn on_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
+    println!("On_science");
     for mut science_node in &mut science_query {
         science_node.display = Display::Flex;
     }
 }
 
 pub fn off_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
+    println!("_science");
     for mut science_node in &mut science_query {
         science_node.display = Display::None;
+    }
+}
+
+pub fn on_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
+    println!("On_prod");
+    for mut prod_node in &mut prod_query {
+        println!("lol");
+        prod_node.display = Display::Flex;
+    }
+}
+
+pub fn off_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
+    for mut prod_node in &mut prod_query {
+        prod_node.display = Display::None;
+    }
+}
+
+pub fn on_mission(mut mission_query: Query<&mut Node, With<MissionScreen>>) {
+    println!("TODO make mission parameters fit");
+    for mut mission_node in &mut mission_query {
+        mission_node.display = Display::Flex;
+    }
+}
+
+pub fn off_mission(mut mission_query: Query<&mut Node, With<MissionScreen>>) {
+    for mut mission_node in &mut mission_query {
+        mission_node.display = Display::None;
     }
 }
 
@@ -35,29 +80,35 @@ pub fn off_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
 struct Background;
 
 #[derive(Component)]
-struct XcomObject;
+pub struct XcomObject;
+
+#[derive(Component)]
+pub struct Clock;
 
 #[derive(Resource)]
 pub struct XcomResources {
-    geo_map: Handle<Image>,
-    placeholder: Handle<Image>,
-    button_normal: Handle<Image>,
-    button_normal_hover: Handle<Image>,
-    button_normal_big: Handle<Image>,
-    button_green: Handle<Image>,
-    button_green_hover: Handle<Image>,
-    backpanel: Handle<Image>,
-    icons: HashMap<Tech, Handle<Image>>,
-    font: Handle<Font>,
+    pub geo_map: Handle<Image>,
+    pub placeholder: Handle<Image>,
+    pub button_normal: Handle<Image>,
+    pub button_normal_hover: Handle<Image>,
+    pub button_normal_big: Handle<Image>,
+    pub button_green: Handle<Image>,
+    pub button_green_hover: Handle<Image>,
+    pub backpanel: Handle<Image>,
+    pub icons: HashMap<Tech, Handle<Image>>,
+    pub font: Handle<Font>,
 }
 
 #[derive(Resource)]
 pub struct XcomState {
-    time: usize,
-    research: Vec<Research>,
-    selected_research: Option<Research>,
-    resources: HashMap<ResourceType, Resources>,
-    assets: XcomResources,
+    pub time: usize,
+    pub research: Vec<Research>,
+    pub selected_research: Option<Research>,
+    pub selected_production: Option<ResourceType>,
+    pub resources: HashMap<ResourceType, Resources>,
+    pub assets: XcomResources,
+    pub active_missions: Vec<Mission>,
+    pub timer: Timer,
 }
 
 #[repr(usize)]
@@ -70,7 +121,7 @@ pub enum ButtonPath {
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-enum Focus {
+pub enum Focus {
     #[default]
     Map,
     Science,
@@ -79,7 +130,7 @@ enum Focus {
 }
 
 #[derive(Component)]
-struct ButtonLink(ButtonPath);
+pub struct ButtonLink(pub ButtonPath);
 
 #[derive(Component)]
 struct BackDropFade;
@@ -100,6 +151,7 @@ fn button_system(
                 // Depending on button flag, do something
                 //                log::info!(link);
                 sprite.image = context.assets.button_normal_hover.clone();
+                println!("Pressed a button");
 
                 match (link).0 {
                     ButtonPath::MainMenu => {
@@ -109,9 +161,11 @@ fn button_system(
                         next_state.set(Focus::Science);
                     }
                     ButtonPath::ProductionMenu => {
+                        println!("Entering Production");
                         next_state.set(Focus::Production);
                     }
                     ButtonPath::MissionMenu => {
+                        println!("Entering Mission");
                         next_state.set(Focus::Mission);
                     }
                 }
@@ -127,15 +181,24 @@ fn button_system(
 }
 
 fn quit_hud_element_system(
-    mut interaction_query: Query<
-        //Shoul be single
-        (&Interaction),
-        (Changed<Interaction>, With<BackDropFade>),
-    >,
+    interaction_query: Option<Single<(&Interaction), (Changed<Interaction>, With<BackDropFade>)>>,
     mut next_state: ResMut<NextState<Focus>>,
 ) {
-    for (interaction) in &mut interaction_query {
-        next_state.set(Focus::Map);
+    if let Some(interaction) = interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                println!("Awesome");
+                next_state.set(Focus::Map);
+            }
+            Interaction::Hovered => {
+                println!("Hover");
+            }
+            Interaction::None => {
+                println!("Chilling");
+            }
+        }
+    } else {
+        println!("Fucked up");
     }
 }
 
@@ -152,8 +215,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             prerequisites: vec![],
             progress: 50,
         }],
-
+        active_missions: vec![],
         selected_research: None,
+        timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
         resources: vec![Resources {
             name: Scientists,
             description: "A talented researcher of the arcane".to_string(),
@@ -164,6 +228,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .collect(),
         assets,
     });
+}
+
+fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
+    commands.spawn((
+        Button,
+        ButtonLink(ButtonPath::MissionMenu),
+        Node {
+            width: Val::Px(150.0),
+            height: Val::Px(150.0),
+            border: UiRect::all(Val::Px(5.0)),
+            ..default()
+        },
+        BorderColor(Color::BLACK),
+        BorderRadius::MAX,
+        BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
+        ZIndex(1),
+    ));
 }
 
 fn on_xcom(
@@ -188,242 +269,19 @@ fn on_xcom(
         XcomObject,
     ));
 
-    commands
-        .spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                right: Val::Vw(0.0),
-                align_items: AlignItems::FlexEnd,
-                justify_content: JustifyContent::FlexEnd,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            ZIndex(2),
-        ))
-        .with_children(|parent| {
-            parent //The clock button
-                .spawn((
-                    Node {
-                        width: Val::Px(256.0),
-                        height: Val::Px(256.0),
-                        // horizontally center child text
-                        justify_content: JustifyContent::FlexEnd,
-                        // vertically center child text
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                    ImageNode::new(context.assets.button_normal_big.clone()),
-                ))
-                .with_child((
-                    Text::new("1985\nApr 5th\n10:49"),
-                    TextFont {
-                        font: context.assets.font.clone(),
-                        font_size: 33.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.7, 0.7, 0.9)),
-                ));
+    spawn_mission(&mut commands, &context);
 
-            make_button(
-                parent,
-                "Research".to_string(),
-                ButtonPath::ScienceMenu,
-                &(*context),
-                Val::Px(256.0),
-                Val::Px(64.0),
-            );
-            make_button(
-                parent,
-                "Production".to_string(),
-                ButtonPath::ProductionMenu,
-                &*context,
-                Val::Px(256.0),
-                Val::Px(64.0),
-            );
-            make_button(
-                parent,
-                "Save".to_string(),
-                ButtonPath::MainMenu,
-                &*context,
-                Val::Px(256.0),
-                Val::Px(64.0),
-            );
-            make_button(
-                parent,
-                "Load".to_string(),
-                ButtonPath::MainMenu,
-                &*context,
-                Val::Px(256.0),
-                Val::Px(64.0),
-            );
-        });
+    //Map hud
+    SpawnGeoHUD(&mut commands, &context);
 
     //ScienceHud
-    commands
-        .spawn((
-            ScienceScreen, //The fade backdrop. Will also be a button out
-            Button,
-            BackDropFade,
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                right: Val::Vw(0.0),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
-            ZIndex(3),
-        ))
-        .with_children(|backdrop| {
-            backdrop
-                .spawn((
-                    Node {
-                        width: Val::Percent(70.0),
+    SpawnScienceHUD(&mut commands, &context);
 
-                        height: Val::Percent(80.0),
-                        right: Val::Vw(0.0),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        flex_direction: FlexDirection::Column,
-                        ..default()
-                    },
-                    ImageNode::new(context.assets.backpanel.clone()),
-                ))
-                .with_children(|parent| {
-                    //Top 30% of the screen for found research and icons
-                    parent
-                        .spawn(
-                            (Node {
-                                width: Val::Percent(50.0),
-                                height: Val::Percent(30.0),
-                                top: Val::Vh(0.0),
-                                align_items: AlignItems::Center,
-                                justify_content: JustifyContent::Center,
-                                flex_direction: FlexDirection::Row,
-                                ..default()
-                            }),
-                        )
-                        .with_children(|research_icon| {
-                            for unlocked_technology in &context.research {
-                                let icon = context.assets.icons[&unlocked_technology.id].clone();
-                                make_icon(research_icon, icon, &(*context));
-                            }
-                        });
+    //ProductionHud
+    SpawnManufacturingHUD(&mut commands, &context);
 
-                    parent
-                        .spawn(
-                            (Node {
-                                width: Val::Percent(50.0),
-                                height: Val::Percent(70.0),
-                                bottom: Val::Vh(0.0),
-                                align_items: AlignItems::Center,
-                                justify_content: JustifyContent::Center,
-                                flex_direction: FlexDirection::Column,
-                                ..default()
-                            }),
-                        )
-                        .with_children(|option_box| {
-                            //Make the research dynamic? TODO
-
-                            make_button(
-                                option_box,
-                                "Heavy Frame".to_string(),
-                                ButtonPath::ScienceMenu,
-                                &(*context),
-                                Val::Percent(80.0),
-                                Val::Percent(20.0),
-                            );
-                            make_button(
-                                option_box,
-                                "Hover Magic".to_string(),
-                                ButtonPath::ScienceMenu,
-                                &(*context),
-                                Val::Percent(80.0),
-                                Val::Percent(20.0),
-                            );
-                            make_button(
-                                option_box,
-                                "Ace Frame".to_string(),
-                                ButtonPath::ProductionMenu,
-                                &*context,
-                                Val::Percent(80.0),
-                                Val::Percent(20.0),
-                            );
-                            make_button(
-                                option_box,
-                                "Bomb".to_string(),
-                                ButtonPath::ProductionMenu,
-                                &*context,
-                                Val::Percent(80.0),
-                                Val::Percent(20.0),
-                            );
-                        });
-                });
-        });
-}
-
-fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &XcomState) {
-    parent
-        .spawn((
-            Node {
-                width: Val::Px(64.0),
-                height: Val::Px(64.0),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                margin: UiRect {
-                    left: Val::Px(8.0),
-                    right: Val::Px(8.0),
-                    top: Val::Px(8.0),
-                    bottom: Val::Px(8.0),
-                },
-                ..default()
-            },
-            ImageNode::new(context.assets.button_green.clone()),
-        ))
-        .with_child((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                ..default()
-            },
-            ImageNode::new(image_handler),
-        ));
-}
-
-fn make_button(
-    parent: &mut ChildBuilder,
-    text: String,
-    link_id: ButtonPath,
-    context: &XcomState,
-    width: Val,
-    height: Val,
-) {
-    parent
-        .spawn((
-            Button,
-            ButtonLink(link_id),
-            Node {
-                width,
-                height,
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            ImageNode::new(context.assets.button_normal.clone()),
-        ))
-        .with_child((
-            Text::new(text),
-            TextFont {
-                font: context.assets.font.clone(),
-                font_size: 33.0,
-                ..default()
-            },
-            TextColor(Color::srgb(0.7, 0.7, 0.9)),
-        ));
+    //SpawnMissionHud
+    SpawnMissionHUD(&mut commands, &context);
 }
 
 fn off_xcom() {}
@@ -433,7 +291,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     icons.insert(Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png"));
 
     XcomResources {
-        geo_map: asset_server.load("placeholder_geomap.png"),
+        geo_map: asset_server.load("Xcom_hud/Earth.png"),
         placeholder: asset_server.load("mascot.png"),
         button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
         button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
@@ -446,12 +304,22 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     }
 }
 
+fn time_to_date(time: usize) -> String {
+    format!("1985\nSep 15\n{}:{}", time / 60, time % 60)
+}
+
 fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+    context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
     context.time += 1;
     if let Some(selected_research) = &mut context.selected_research {
         selected_research.progress += scientists;
+        if (selected_research.progress > selected_research.cost) {
+            //TODO popup/Notification?
+        }
     }
+    if let Some()
+    //dbg!(time_to_date(context.time));
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
