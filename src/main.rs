@@ -16,7 +16,6 @@ enum GameState {
 fn main() {
     App::new()
         .insert_resource(WinitSettings::game())
-        .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins((xcom::xcom_plugin, touhou::touhou_plugin))
         .init_state::<GameState>()
