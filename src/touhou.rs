@@ -106,7 +106,7 @@ pub fn spawn_player(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     commands.spawn(Player {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
-            image: asset_server.load("mascot.png"),
+            image: asset_server.load("Xcom_hud\\playerrocket1.png"),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
@@ -144,9 +144,10 @@ fn do_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
-    mut player_info: Single<(&mut Transform, &Collider), With<PlayerMarker>>,
+    asset_server: ResMut<AssetServer>,
+    mut player_info: Single<(&mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
 ) {
-    let (mut trans, mut collider) = player_info.into_inner();
+    let (mut trans, mut collider, mut sprite) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -154,6 +155,12 @@ fn do_movement(
 
     let dy = up + -down;
     let dx = right + -left;
+
+    if down > 0.0 {
+        sprite.image = asset_server.load("Xcom_hud\\playerrocket2.png");
+    } else {
+        sprite.image = asset_server.load("Xcom_hud\\playerrocket1.png");
+    }
 
     let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
 
