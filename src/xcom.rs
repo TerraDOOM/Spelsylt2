@@ -262,6 +262,7 @@ fn on_xcom(
     //ScienceHud
     commands
         .spawn((
+<<<<<<< HEAD
             ScienceScreen, //The fade backdrop. Will also be a button out
             Button,
             BackDropFade,
@@ -269,12 +270,20 @@ fn on_xcom(
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 right: Val::Vw(0.0),
+=======
+            ScienceScreen, //Science screen top. Grayed out background
+            /*Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+>>>>>>> a6959a9 (morning)
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 flex_direction: FlexDirection::Column,
                 display: Display::None,
+
                 ..default()
             },
+<<<<<<< HEAD
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
             ZIndex(3),
         ))
@@ -283,6 +292,52 @@ fn on_xcom(
                 .spawn((
                     Node {
                         width: Val::Percent(70.0),
+=======
+            BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
+        ))
+        .with_children */(
+            //Backdrop
+            Node {
+                width: Val::Percent(80.0),
+                height: Val::Percent(80.0),
+                left: Val::Vh(10.0),
+                top: Val::Vh(10.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ImageNode::new(context.assets.backpanel.clone()),
+        )
+        .with_children(|parent| {
+            //Top part
+            //Top 30% of the screen for found research and icons
+            parent
+                .spawn(
+                    (Node {
+                        width: Val::Percent(50.0),
+                        height: Val::Percent(30.0),
+                        top: Val::Vh(0.0),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    }),
+                )
+                .with_children(|research_icon| {
+                    //TODO, researched techs
+                    make_icon(research_icon, &(*context));
+                    make_icon(research_icon, &(*context));
+                    make_icon(research_icon, &(*context));
+                    make_icon(research_icon, &(*context));
+                    make_icon(research_icon, &(*context));
+                });
+
+            parent //Currently researchable techs
+                .spawn(
+                    (Node {
+                        width: Val::Percent(50.0),
+>>>>>>> a6959a9 (morning)
                         height: Val::Percent(70.0),
                         right: Val::Vw(0.0),
                         align_items: AlignItems::Center,
@@ -375,17 +430,35 @@ fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &
                 justify_content: JustifyContent::Center,
                 // vertically center child text
                 align_items: AlignItems::Center,
+                margin: UiRect {
+                    left: Val::Px(8.0),
+                    right: Val::Px(8.0),
+                    top: Val::Px(8.0),
+                    bottom: Val::Px(8.0),
+                },
                 ..default()
             },
             ImageNode::new(context.assets.button_green.clone()),
         ))
         .with_child((
             Node {
+<<<<<<< HEAD
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 ..default()
             },
             ImageNode::new(image_handler),
+=======
+                width: Val::Px(64.0),
+                height: Val::Px(64.0),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ImageNode::new(context.assets.ship1.clone()),
+>>>>>>> a6959a9 (morning)
         ));
 }
 
@@ -438,8 +511,12 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
+<<<<<<< HEAD
         icons,
+=======
+>>>>>>> a6959a9 (morning)
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
+        ship1: asset_server.load("Xcom_hud/Flight.png"),
     }
 }
 
