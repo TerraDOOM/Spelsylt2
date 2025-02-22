@@ -375,6 +375,46 @@ pub fn unequip_loadout(
     }
 }
 
+pub fn equip_loadout(
+    mut context: ResMut<XcomState>,
+    mut interaction_query: Query<(&Interaction, &Equipment), (Changed<Interaction>)>,
+    mut loadout_query: Query<(&ShipComponent, &mut Children)>,
+    mut image_query: Query<&mut ImageNode>,
+    mut pressed_already: Local<bool>,
+) {
+    for (interaction, equipment) in &mut interaction_query {
+        println!("About to equip");
+        if *interaction == Interaction::Pressed {
+            if !*pressed_already {
+                *pressed_already = true;
+                dbg!(*interaction);
+                let XcomState {
+                    assets, loadout, ..
+                } = &mut *context;
+                for (key, value) in loadout {
+                    if value.is_none() {
+                        println!("Equip!");
+                        *value = Some(equipment.0);
+
+                        //We must find the box to fill from key
+                        for (component, mut children) in &mut loadout_query {
+                            if component.0 == *key {
+                                let mut node = image_query.get_mut(children[0]).unwrap();
+                                *node = ImageNode::new(assets.icons[&equipment.0].clone());
+                                return;
+                            }
+                        }
+                    }
+                }
+            } else {
+                continue;
+            }
+        } else {
+            *pressed_already = false;
+        }
+    }
+}
+
 pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(
         context,
@@ -444,14 +484,20 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         height: Val::Percent(50.0),
                         left: Val::Px(128.0),
                         flex_direction: FlexDirection::Column,
+                        align_self: AlignSelf::Stretch,
+                        overflow: Overflow::scroll_y(),
+
                         ..default_button_node()
                     }),
                 )
+                .insert(PickingBehavior {
+                    should_block_lower: false,
+                    ..default()
+                })
                 .with_children(|option_box| {
                     //Only done when spawning! TODO
-
-                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
-                    option_box.spawn((
+                    //                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                    /*                    option_box.spawn((
                         Node {
                             top: Val::Px(-64.0),
                             left: Val::Px(64.0),
@@ -464,10 +510,16 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                             ..default()
                         },
                         TextColor(Color::srgb(0.7, 0.7, 0.9)),
-                    ));
-                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
-                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
-                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
+                        PickingBehavior {
+                            should_block_lower: false,
+                            ..default()
+                        },
+                    ));*/
+
+                    make_equipment(option_box, &(*context), Equipment(Tech::HeavyBody));
+                    make_equipment(option_box, &(*context), Equipment(Tech::MagicBullet));
+                    make_equipment(option_box, &(*context), Equipment(Tech::MachineGun));
+                    make_equipment(option_box, &(*context), Equipment(Tech::Rocket));
                 });
             parent
                 .spawn(
@@ -501,6 +553,28 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
         },
         false,
     );
+}
+
+fn make_equipment(parent: &mut ChildBuilder, context: &XcomState, equipment_type: Equipment) {
+    parent
+        .spawn((
+            Node {
+                width: Val::Px(64.0),
+                height: Val::Px(64.0),
+                ..default_button_node()
+            },
+            Button,
+            equipment_type.clone(),
+            ImageNode::new(context.assets.button_green.clone()),
+        ))
+        .with_child((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                ..default()
+            },
+            ImageNode::new(context.assets.icons[&equipment_type.0].clone()),
+        ));
 }
 
 fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &XcomState) {

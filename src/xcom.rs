@@ -23,7 +23,8 @@ pub fn xcom_plugin(app: &mut App) {
         )
         .add_systems(
             Update,
-            (unequip_loadout).run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
+            (unequip_loadout, equip_loadout)
+                .run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
         );
 
     app.init_state::<Focus>();
@@ -48,6 +49,9 @@ pub struct MissionScreen;
 
 #[derive(Component)]
 pub struct CurrentResearch;
+
+#[derive(Component, Clone)]
+pub struct Equipment(pub Tech);
 
 pub fn on_science(
     mut science_query: Query<&mut Node, With<ScienceScreen>>,
@@ -136,10 +140,10 @@ pub struct XcomState {
     pub possible_research: Vec<Research>,
     pub selected_research: Option<Research>,
     pub selected_production: Option<ResourceType>,
-    pub resources: HashMap<ResourceType, Resources>,
+    pub inventory: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
     pub active_missions: Vec<Mission>,
-    pub loadout: HashMap<Slot, Option<ResourceType>>,
+    pub loadout: HashMap<Slot, Option<Tech>>,
     pub timer: Timer,
     pub speed: usize,
 }
@@ -187,7 +191,7 @@ struct LoadoutIcon;
 pub struct ScienceSelect(pub Tech);
 
 #[derive(Component)]
-pub struct MissionMarker;
+pub struct MissionMarker(Mission);
 
 fn button_system(
     mut interaction_query: Query<
@@ -318,15 +322,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         selected_research: None,
         selected_production: None,
         loadout: HashMap::from([
-            (Slot::Front, Some(Pilot)),
-            (Slot::Engine, Some(Engine_T1)),
+            (Slot::Front, Some(Tech::Rocket)),
+            (Slot::Engine, Some(Tech::MachineGun)),
             (Slot::Core1, None),
-            (Slot::LeftWing1, Some(Gun_machinegun)),
-            (Slot::RightWing1, Some(Gun_Rocket)),
+            (Slot::LeftWing1, Some(Tech::MagicBullet)),
+            (Slot::RightWing1, None),
         ]),
         timer: Timer::new(Duration::from_secs_f32(0.8), TimerMode::Repeating),
         speed: 5,
-        resources: vec![
+        inventory: vec![
             Resources {
                 name: Scientists,
                 description: "A talented researcher of the near arcane".to_string(),
@@ -345,40 +349,57 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) -> Mission {
-    commands.spawn((
-        Button,
-        ButtonLink(ButtonPath::MissionMenu),
-        MissionMarker,
-        Node {
-            width: Val::Px(50.0),
-            height: Val::Px(50.0),
-            border: UiRect::all(Val::Px(5.0)),
-            ..default()
-        },
-        ImageNode::new(context.assets.circle.clone()),
-        ZIndex(1),
-    ));
-    Mission {
+fn spawn_mission(
+    commands: &mut Commands,
+    context: &ResMut<XcomState>,
+    x: f32,
+    y: f32,
+    phase: f32,
+) -> Mission {
+    let mission = Mission {
         id: "TODO".to_string(),
         name: "Not implemented yet".to_string(),
         enemy: "Cirno idk".to_string(),
         requirment: vec![],
         consequences: vec![],
         rewards: vec![],
-        time_left: 20000,
-    }
+        time_left: 20000 * 40,
+        overworld_x: x,
+        overworld_y: y,
+        phase,
+    };
+    commands.spawn((
+        Button,
+        ButtonLink(ButtonPath::MissionMenu),
+        MissionMarker(mission.clone()),
+        Node {
+            width: Val::Px(50.0),
+            height: Val::Px(50.0),
+            border: UiRect::all(Val::Px(5.0)),
+            left: Val::Px(x),
+            bottom: Val::Px(y),
+            ..default()
+        },
+        ImageNode::new(context.assets.circle.clone()),
+        ZIndex(1),
+    ));
+    mission
 }
 
-fn move_enemies(mut marker_query: Query<(&mut Node), (With<MissionMarker>)>, passed_time: f32) {
-    for (mut node) in &mut marker_query {
-        node.left = Val::Px(passed_time.sin() * 400.0 + 400.0);
-        node.top = Val::Px(passed_time.cos() * 200.0 + 400.0);
-    }
+fn move_enemies(
+    mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
+    passed_time: f32,
+) {
+    for (mut node, mut mission_marker) in &mut marker_query {
+        let phase = mission_marker.0.phase;
+        mission_marker.0.overworld_x += (passed_time + phase).sin() * 5.;
+        mission_marker.0.overworld_y += (passed_time + phase).cos() * 5.;
+        mission_marker.0.time_left -= passed_time as usize;
+        dbg!(mission_marker.0.time_left);
 
-    /*    for mission in active_missions {
-        mission.time_left -= passed_time;
-    }*/
+        node.left = Val::Px(mission_marker.0.overworld_x);
+        node.top = Val::Px(mission_marker.0.overworld_y);
+    }
 }
 
 fn on_xcom(
@@ -403,7 +424,7 @@ fn on_xcom(
         XcomObject,
     ));
 
-    spawn_mission(&mut commands, &context);
+    spawn_mission(&mut commands, &context, 100., 100., 0.);
 
     //Map hud
     spawn_geo_hud(&mut commands, &context);
@@ -509,25 +530,32 @@ fn time_to_date(time: usize) -> String {
 }
 
 fn update(
+    mut commands: Commands,
     mut context: ResMut<XcomState>,
     real_time: Res<Time>,
     clock_query: Single<(&mut Children), With<Clock>>,
     mut text_query: Query<&mut Text>,
-    mut marker_query: Query<(&mut Node), (With<MissionMarker>)>,
+    mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
 ) {
     context.timer.tick(real_time.delta());
 
     if context.timer.just_finished() {
         context.timer.reset();
 
-        let scientists: usize = context.resources[&Scientists].amount.clone();
-        let engineers: usize = context.resources[&Engineer].amount.clone();
-        context.time += 5;
+        let scientists: usize = context.inventory[&Scientists].amount.clone();
+        let engineers: usize = context.inventory[&Engineer].amount.clone();
+        context.time += 30;
 
         let mut rng = rand::thread_rng();
-        //        if 0 == rng.gen_range(0..5){
-        //            spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>);
-        // TODO        }
+        if 0 == rng.gen_range(0..20) {
+            spawn_mission(
+                &mut commands,
+                &context,
+                rng.gen_range(120..800) as f32, //The x spawn range
+                rng.gen_range(120..500) as f32, //The y spawn range
+                rng.gen_range(0..360) as f32,   //The complete phase randomisation
+            );
+        }
 
         move_enemies(marker_query, (context.time as f32) / 80.0);
 
