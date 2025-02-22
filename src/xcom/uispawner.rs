@@ -1,3 +1,7 @@
+use bevy::input::mouse::MouseScrollUnit;
+use bevy::input::mouse::MouseWheel;
+use bevy::picking::focus::HoverMap;
+
 use crate::prelude::*;
 use crate::xcom::*;
 
@@ -40,7 +44,7 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                 ));
 
             let mut make_geo_button =
-                |name, id| make_button(parent, name, id, &*context, Val::Px(256.0), Val::Px(64.0));
+                |name, id| make_button(parent, name, id, &*context, Val::Px(256.0), Val::Px(64.0), default_button_node());
 
             make_geo_button("Research", ButtonPath::ScienceMenu);
             make_geo_button("Production", ButtonPath::ProductionMenu);
@@ -56,6 +60,7 @@ fn make_button(
     context: &XcomState,
     width: Val,
     height: Val,
+    default_node: Node,
 ) {
     parent
         .spawn((
@@ -64,10 +69,14 @@ fn make_button(
             Node {
                 width,
                 height,
-                ..default_button_node()
+                ..default_node
             },
             ImageNode::new(context.assets.button_normal.clone()),
         ))
+        .insert(PickingBehavior {
+            should_block_lower: false,
+            ..default()
+        })
         .with_child((
             Text::new(text.to_string()),
             TextFont {
@@ -76,6 +85,10 @@ fn make_button(
                 ..default()
             },
             TextColor(Color::srgb(0.7, 0.7, 0.9)),
+            PickingBehavior {
+                should_block_lower: false,
+                ..default()
+            }
         ));
 }
 
@@ -102,10 +115,15 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
 
             parent
                 .spawn(Node {
+                    top: Val::Percent(30.0),
                     width: Val::Percent(50.0),
                     height: Val::Percent(70.0),
-                    bottom: Val::Vh(0.0),
+                    column_gap: Val::ZERO,
                     flex_direction: FlexDirection::Column,
+                    padding: UiRect { top: Val::Percent(35.0), ..default() },
+                    align_self: AlignSelf::Stretch,
+                    overflow: Overflow { x: OverflowAxis::Clip, y: OverflowAxis::Scroll },
+                    overflow_clip_margin: OverflowClipMargin::border_box(),
                     ..default_button_node()
                 })
                 .with_children(|option_box| {
@@ -118,17 +136,75 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                             id,
                             &*context,
                             Val::Percent(80.0),
-                            Val::Percent(20.0),
+                            Val::Px(6000.0),
+                            Node { min_height: Val::Px(40.0), max_height: Val::Px(40.0), 
+                                padding: UiRect::ZERO, 
+                                margin: UiRect::ZERO,
+                                overflow: Overflow::clip(),
+                                column_gap: Val::Px(0.0), ..Default::default() }
                         );
                     };
 
                     make_science_button("Heavy Frame", ButtonPath::ScienceMenu);
-                    make_science_button("Hover Magic", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic1", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic2", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic3", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic4", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic5", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic6", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic7", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic8", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic9", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic7", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic8", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic9", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic7", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic8", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic9", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic10", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic11", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic12", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic13", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic14", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic15", ButtonPath::ScienceMenu);
+                    make_science_button("Hover Magic16", ButtonPath::ScienceMenu);
                     make_science_button("Ace Frame", ButtonPath::MainMenu);
                     make_science_button("Exit", ButtonPath::MainMenu);
                 });
         },
     );
+}
+
+pub fn update_scroll_position(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    hover_map: Res<HoverMap>,
+    mut scrolled_node_query: Query<&mut ScrollPosition>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    for mouse_wheel_event in mouse_wheel_events.read() {
+        let (mut dx, mut dy) = match mouse_wheel_event.unit {
+            MouseScrollUnit::Line => (
+                mouse_wheel_event.x * 21.0,
+                mouse_wheel_event.y * 21.0,
+            ),
+            MouseScrollUnit::Pixel => (mouse_wheel_event.x, mouse_wheel_event.y),
+        };
+
+        if keyboard_input.pressed(KeyCode::ControlLeft)
+            || keyboard_input.pressed(KeyCode::ControlRight)
+        {
+            std::mem::swap(&mut dx, &mut dy);
+        }
+
+        for (_pointer, pointer_map) in hover_map.iter() {
+            for (entity, _hit) in pointer_map.iter() {
+                if let Ok(mut scroll_position) = scrolled_node_query.get_mut(*entity) {
+                    scroll_position.offset_x -= dx;
+                    scroll_position.offset_y -= dy;
+                }
+            }
+        }
+    }
 }
 
 pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
@@ -270,6 +346,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     &*context,
                     Val::Percent(80.0),
                     Val::Percent(20.0),
+                    default()
                 );
             });
     });
