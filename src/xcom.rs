@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
 
-use crate::uispawner::*;
+mod uispawner;
+
+use uispawner::*;
 
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
@@ -272,16 +274,16 @@ fn on_xcom(
     spawn_mission(&mut commands, &context);
 
     //Map hud
-    SpawnGeoHUD(&mut commands, &context);
+    spawn_geo_hud(&mut commands, &context);
 
     //ScienceHud
-    SpawnScienceHUD(&mut commands, &context);
+    spawn_science_hud(&mut commands, &context);
 
     //ProductionHud
-    SpawnManufacturingHUD(&mut commands, &context);
+    spawn_manufacturing_hud(&mut commands, &context);
 
     //SpawnMissionHud
-    SpawnMissionHUD(&mut commands, &context);
+    spawn_mission_hud(&mut commands, &context);
 }
 
 fn off_xcom() {}

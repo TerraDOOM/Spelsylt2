@@ -3,7 +3,6 @@ use bevy::{input::common_conditions::*, prelude::*, winit::WinitSettings};
 mod prelude;
 mod touhou;
 mod types;
-mod uispawner;
 mod xcom;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
