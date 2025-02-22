@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
 
-use crate::uispawner::*;
+mod uispawner;
+
+use uispawner::*;
 
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
