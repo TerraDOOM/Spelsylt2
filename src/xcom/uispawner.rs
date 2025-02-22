@@ -453,6 +453,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         &*context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
+                        default_button_node(),
                     );
                     make_button(
                         option_box,
@@ -461,6 +462,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         &*context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
+                        default_button_node(),
                     );
                 });
         },
