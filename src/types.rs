@@ -11,7 +11,7 @@ pub struct Mission {
 }
 
 pub struct Research {
-    pub id: String,
+    pub id: Tech,
     pub name: String,
     pub description: String,
     pub cost: usize,
@@ -31,4 +31,11 @@ pub struct Resources {
 pub enum ResourceType {
     Scientists,
     MagicDust,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Tech {
+    HeavyBody,
+    HoverMagic,
 }
