@@ -100,7 +100,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
             //Top 30% of the screen for found research and icons
             parent
                 .spawn(Node {
-                    width: Val::Percent(50.0),
+                    width: Val::Percent(40.0),
                     height: Val::Percent(30.0),
                     top: Val::Vh(0.0),
                     flex_direction: FlexDirection::Row,
@@ -112,6 +112,24 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                         make_icon(research_icon, icon, &(*context));
                     }
                 });
+
+            parent
+                .spawn(Node {
+                    top: Val::Percent(0.0),
+                    flex_direction: FlexDirection::Column,
+                    align_self: AlignSelf::Stretch,
+                    height: Val::Percent(25.),
+                    ..default()
+                })
+                .with_child((
+                    Text::new("Currently researching X"),
+                    TextFont {
+                        font: context.assets.font.clone(),
+                        font_size: 33.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.7, 0.7, 0.9)),
+                ));
 
             parent
                 .spawn(Node {
