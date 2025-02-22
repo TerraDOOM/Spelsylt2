@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use std::collections::HashMap;
+use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
 
 use crate::uispawner::*;
@@ -8,9 +9,10 @@ pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
 
     app.add_systems(OnEnter(GameState::Xcom), on_xcom)
+        .add_systems(Update, (button_system).run_if(in_state(GameState::Xcom)))
         .add_systems(
             Update,
-            (update, button_system).run_if(in_state(GameState::Xcom)),
+            (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         );
 
     app.init_state::<Focus>();
@@ -80,6 +82,9 @@ struct Background;
 #[derive(Component)]
 pub struct XcomObject;
 
+#[derive(Component)]
+pub struct Clock;
+
 #[derive(Resource)]
 pub struct XcomResources {
     pub geo_map: Handle<Image>,
@@ -99,8 +104,11 @@ pub struct XcomState {
     pub time: usize,
     pub research: Vec<Research>,
     pub selected_research: Option<Research>,
+    pub selected_production: Option<ResourceType>,
     pub resources: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
+    pub active_missions: Vec<Mission>,
+    pub timer: Timer,
 }
 
 #[repr(usize)]
@@ -207,8 +215,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             prerequisites: vec![],
             progress: 50,
         }],
-
+        active_missions: vec![],
         selected_research: None,
+        timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
         resources: vec![Resources {
             name: Scientists,
             description: "A talented researcher of the arcane".to_string(),
@@ -282,7 +291,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     icons.insert(Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png"));
 
     XcomResources {
-        geo_map: asset_server.load("placeholder_geomap.png"),
+        geo_map: asset_server.load("Xcom_hud/Earth.png"),
         placeholder: asset_server.load("mascot.png"),
         button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
         button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
@@ -295,12 +304,22 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     }
 }
 
+fn time_to_date(time: usize) -> String {
+    format!("1985\nSep 15\n{}:{}", time / 60, time % 60)
+}
+
 fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+    context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
     context.time += 1;
     if let Some(selected_research) = &mut context.selected_research {
         selected_research.progress += scientists;
+        if (selected_research.progress > selected_research.cost) {
+            //TODO popup/Notification?
+        }
     }
+    if let Some()
+    //dbg!(time_to_date(context.time));
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
