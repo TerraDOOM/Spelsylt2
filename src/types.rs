@@ -31,7 +31,13 @@ pub struct Resources {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum ResourceType {
     Scientists,
+    Engineer,
     MagicDust,
+    Engine_T1,
+    Gun_machinegun,
+    Gun_Rocket,
+    Pilot,
+    Plane_T1,
 }
 
 #[repr(usize)]

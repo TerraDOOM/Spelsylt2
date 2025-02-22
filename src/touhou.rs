@@ -114,8 +114,6 @@ fn draw_gizmos(
     area: Res<GameplayRect>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
-    return;
-
     use bevy::color::palettes::css::RED;
 
     gizmos.rect_2d(
@@ -151,7 +149,7 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 10.0;
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
 
     let new_pos = (trans.translation + wishdir).xy();
 

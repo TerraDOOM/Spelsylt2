@@ -87,6 +87,9 @@ pub struct XcomObject;
 #[derive(Component)]
 pub struct Clock;
 
+#[derive(Component)]
+pub struct ShipComponent(Slot);
+
 #[derive(Resource)]
 pub struct XcomResources {
     pub geo_map: Handle<Image>,
@@ -98,6 +101,7 @@ pub struct XcomResources {
     pub button_green_hover: Handle<Image>,
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
+    pub loadout: Handle<Image>,
     pub font: Handle<Font>,
 }
 
@@ -110,6 +114,7 @@ pub struct XcomState {
     pub resources: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
     pub active_missions: Vec<Mission>,
+    pub loudout: HashMap<Slot, Option<ResourceType>>,
     pub timer: Timer,
 }
 
@@ -120,6 +125,16 @@ pub enum ButtonPath {
     ScienceMenu,
     ProductionMenu,
     MissionMenu,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Slot {
+    Front,
+    Core1,
+    Engine,
+    LeftWing1,
+    RightWing1,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -137,17 +152,18 @@ pub struct ButtonLink(pub ButtonPath);
 #[derive(Component)]
 struct BackDropFade;
 
+#[derive(Component)]
+struct LoadoutIcon;
+
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut ImageNode, &ButtonLink, &Children),
+        (&Interaction, &mut ImageNode, &ButtonLink),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut Text>,
     context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
 ) {
-    for (interaction, mut sprite, link, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
+    for (interaction, mut sprite, link) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
@@ -207,7 +223,7 @@ fn quit_hud_element_system(
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let assets = load_xcom_assets(&asset_server);
     commands.insert_resource(XcomState {
-        time: 0,
+        time: 371520,
         research: vec![Research {
             id: Tech::HeavyBody,
             name: "Heavy Body".to_string(),
@@ -219,12 +235,27 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         }],
         active_missions: vec![],
         selected_research: None,
+        selected_production: None,
+        loudout: HashMap::from([
+            (Slot::Front, Some(Pilot)),
+            (Slot::Engine, Some(Engine_T1)),
+            (Slot::Core1, None),
+            (Slot::LeftWing1, Some(Gun_machinegun)),
+            (Slot::RightWing1, Some(Gun_Rocket)),
+        ]),
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-        resources: vec![Resources {
-            name: Scientists,
-            description: "A talented researcher of the arcane".to_string(),
-            amount: 5,
-        }]
+        resources: vec![
+            Resources {
+                name: Scientists,
+                description: "A talented researcher of the near arcane".to_string(),
+                amount: 5,
+            },
+            Resources {
+                name: Engineer,
+                description: "A talented craftsman of the near arcane".to_string(),
+                amount: 5,
+            },
+        ]
         .into_iter()
         .map(|r| (r.name.clone(), r))
         .collect(),
@@ -242,6 +273,7 @@ fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
             border: UiRect::all(Val::Px(5.0)),
             ..default()
         },
+        ImageNode::new(context.assets.button_normal.clone()),
         BorderColor(Color::BLACK),
         BorderRadius::MAX,
         BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
@@ -301,27 +333,98 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
+        loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
         icons,
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
 
 fn time_to_date(time: usize) -> String {
-    format!("1985\nSep 15\n{}:{}", time / 60, time % 60)
+    let mut month = "Jan".to_owned();
+    let mut day_reduction = 0;
+    match (time / (24 * 60)) % 365 {
+        32..=59 => {
+            month = "Feb".to_owned();
+            day_reduction = 31;
+        }
+        60..=90 => {
+            month = "Mar".to_owned();
+            day_reduction = 59;
+        }
+        91..=120 => {
+            month = "Apr".to_owned();
+            day_reduction = 90;
+        }
+        121..=151 => {
+            month = "May".to_owned();
+            day_reduction = 120;
+        }
+        152..=181 => {
+            month = "Jun".to_owned();
+            day_reduction = 151;
+        }
+        182..=212 => {
+            month = "Jul".to_owned();
+            day_reduction = 181;
+        }
+        213..=243 => {
+            month = "Aug".to_owned();
+            day_reduction = 212;
+        }
+        244..=273 => {
+            month = "Sep".to_owned();
+            day_reduction = 243;
+        }
+        274..=304 => {
+            month = "Oct".to_owned();
+            day_reduction = 273;
+        }
+        305..=334 => {
+            month = "Nov".to_owned();
+            day_reduction = 304;
+        }
+        335..=365 => {
+            month = "Dec".to_owned();
+            day_reduction = 334;
+        }
+        _ => {}
+    }
+    format!(
+        "{}\n{} {}\n{:02}:{:02}",
+        1985 + (time / (24 * 60 * 365)),
+        month,
+        (time / (24 * 60)) - day_reduction,
+        (time / 60) % 24,
+        time % 60
+    )
 }
 
-fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+fn update(
+    mut context: ResMut<XcomState>,
+    real_time: Res<Time>,
+    clock_query: Single<(&mut Children), With<Clock>>,
+    mut text_query: Query<&mut Text>,
+) {
     context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
-    context.time += 1;
+    let engineers: usize = context.resources[&Engineer].amount.clone();
+    context.time += 5;
     if let Some(selected_research) = &mut context.selected_research {
         selected_research.progress += scientists;
         if (selected_research.progress > selected_research.cost) {
             //TODO popup/Notification?
         }
     }
-    if let Some()
+    if let Some(selected_production) = &mut context.selected_production {
+        println!("lol");
+        //        selected_production.progress += scientists;
+        //        if (selected_production.progress > selected_production.cost) {
+        //TODO popup/Notification?
+    }
     //dbg!(time_to_date(context.time));
+    //    if clock_query.is_some() {
+    let mut text = text_query.get_mut(clock_query[0]).unwrap();
+    **text = time_to_date(context.time);
 }
 
 fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
@@ -330,50 +433,3 @@ fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
 
     //Change hud
 }
-
-/*fn on_xcom_sim(
-    mut commands: Commands,
-    mut tmp: ResMut<NextState<DatingState>>,
-    mut did_init: Local<bool>,
-    mut context: ResMut<DatingContext>,
-    asset_server: Res<AssetServer>,
-) {
-    let window = windows.single();
-    let width = window.resolution.width();
-    let height = window.resolution.height();
-
-    let font = asset_server.load("fonts/Pixelfont/slkscr.ttf");
-    let text_font = TextFont {
-        font: font.clone(),
-        font_size: 50.0,
-        ..default()
-    };
-
-    //Cursor initialisation
-    if let Some(mut background) = background.map(Single::into_inner) {
-        background.color = Color::srgba(1.0, 1.0, 1.0, 1.0);
-    } else {
-        let background_size = Some(Vec2::new(width, height));
-        let background_position = Vec2::new(0.0, 0.0);
-        commands.spawn((
-            dbg!(Sprite {
-                image: asset_server.load("Backgrounds/deeper_deeper_base.png"),
-                custom_size: background_size,
-                ..Default::default()
-            }),
-            Transform::from_translation(background_position.extend(-1.0)),
-            Background,
-            DatingObj,
-        ));
-    }
-
-    let cursor_size = Vec2::new(width / 8.0, width / 8.0);
-    let cursor_position = Vec2::new(0.0, 250.0);
-    let enc = commands.spawn((
-        Sprite::from_color(Color::srgb(0.25, 0.75, 0.25), cursor_size),
-        Transform::from_translation(cursor_position.extend(-0.1)),
-        Cursor(0),
-        Portrait,
-        DatingObj,
-    ));
-}*/
