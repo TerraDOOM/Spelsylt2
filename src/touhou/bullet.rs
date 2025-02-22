@@ -45,7 +45,7 @@ pub fn bullet_plugin(app: &mut App) {
             FixedPostUpdate,
             (player_hits, bullet_bullet_hit).run_if(in_state(GameState::Touhou)),
         )
-        .add_systems(Startup, (add_dead, make_cannon, make_cannon2));
+        .add_systems(Startup, (add_dead, make_cannon, make_cannon, make_cannon, make_cannon2));
 }
 
 fn add_dead(asset_server: Res<AssetServer>) {
@@ -166,17 +166,32 @@ fn fire_weapons(
 
     let pos = trans.translation.xy();
     let alt_fire = alt.is_some();
+    let (mut weapon_count, mut alt_weapon_count) = (0, 0);
+
+    for (weapon, is_alt) in &mut weapons {
+        if is_alt.is_some() != alt_fire {
+            alt_weapon_count += 1;
+        } else {
+            weapon_count += 1;
+        }
+    }
+
+    let mut weapon_idx = 0;
+    let mut alt_weapon_idx = 0;
 
     for (mut weapon, is_alt) in &mut weapons {
         // we are in the wrong weapon group
         if is_alt.is_some() != alt_fire {
             continue;
+            alt_weapon_idx += 1;
+        } else {
+            weapon_idx += 1;
         }
 
         weapon.timer.tick(time.delta());
 
         if weapon.timer.just_finished() {
-            weapon.spawn_bullet(&mut commands, pos);
+            weapon.spawn_bullet(&mut commands, pos - Vec2 { x: 0.0, y: (((weapon_idx - 1) * 50) - (25 * (weapon_count - 1))) as f32 })
         }
     }
 }
