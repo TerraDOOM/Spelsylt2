@@ -44,17 +44,8 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                     TextColor(Color::srgb(0.7, 0.7, 0.9)),
                 ));
 
-            let mut make_geo_button = |name, id| {
-                make_button(
-                    parent,
-                    name,
-                    id,
-                    &*context,
-                    Val::Px(256.0),
-                    Val::Px(64.0),
-                    default_button_node(),
-                )
-            };
+            let mut make_geo_button =
+                |name, id| make_button(parent, name, id, &*context, Val::Px(256.0), Val::Px(64.0));
 
             make_geo_button("Research", ButtonPath::ScienceMenu);
             make_geo_button("Production", ButtonPath::ProductionMenu);
@@ -70,7 +61,6 @@ fn make_button(
     context: &XcomState,
     width: Val,
     height: Val,
-    default_node: Node,
 ) {
     parent
         .spawn((
@@ -79,7 +69,7 @@ fn make_button(
             Node {
                 width,
                 height,
-                ..default_node
+                ..default_button_node()
             },
             ImageNode::new(context.assets.button_normal.clone()),
         ))
@@ -137,18 +127,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
 
                     let mut make_science_button = |name: &'static str, id| {
                         let height = Val::Px(80.0);
-                        make_button(
-                            option_box,
-                            name,
-                            id,
-                            &*context,
-                            Val::Percent(100.0),
-                            height,
-                            Node {
-                                height,
-                                ..default_button_node()
-                            },
-                        );
+                        make_button(option_box, name, id, &*context, Val::Percent(100.0), height);
                     };
 
                     make_science_button("Heavy Frame", ButtonPath::ScienceMenu);
@@ -439,7 +418,6 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         &*context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
-                        default_button_node(),
                     );
                     make_button(
                         option_box,
@@ -448,7 +426,6 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         &*context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
-                        default_button_node(),
                     );
                 });
         },
