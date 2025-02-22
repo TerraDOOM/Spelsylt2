@@ -219,12 +219,20 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         }],
         active_missions: vec![],
         selected_research: None,
+        selected_production: None,
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-        resources: vec![Resources {
-            name: Scientists,
-            description: "A talented researcher of the arcane".to_string(),
-            amount: 5,
-        }]
+        resources: vec![
+            Resources {
+                name: Scientists,
+                description: "A talented researcher of the near arcane".to_string(),
+                amount: 5,
+            },
+            Resources {
+                name: Engineer,
+                description: "A talented craftsman of the near arcane".to_string(),
+                amount: 5,
+            },
+        ]
         .into_iter()
         .map(|r| (r.name.clone(), r))
         .collect(),
@@ -313,6 +321,7 @@ fn time_to_date(time: usize) -> String {
 fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
     context.timer.tick(real_time.delta());
     let scientists: usize = context.resources[&Scientists].amount.clone();
+    let engineers: usize = context.resources[&Engineer].amount.clone();
     context.time += 1;
     if let Some(selected_research) = &mut context.selected_research {
         selected_research.progress += scientists;
@@ -320,7 +329,12 @@ fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
             //TODO popup/Notification?
         }
     }
-    if let Some()
+    if let Some(selected_production) = &mut context.selected_production {
+        println!("lol");
+        //        selected_production.progress += scientists;
+        //        if (selected_production.progress > selected_production.cost) {
+        //TODO popup/Notification?
+    }
     //dbg!(time_to_date(context.time));
 }
 
