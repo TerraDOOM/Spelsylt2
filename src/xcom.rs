@@ -135,6 +135,7 @@ pub enum ButtonPath {
     ScienceMenu,
     ProductionMenu,
     MissionMenu,
+    StartMission,
 }
 
 #[repr(usize)]
@@ -174,7 +175,9 @@ fn button_system(
         (Changed<Interaction>, With<Button>),
     >,
     context: ResMut<XcomState>,
+    mut mission_params: ResMut<MissionParams>,
     mut next_state: ResMut<NextState<Focus>>,
+    mut next_scene: ResMut<NextState<GameState>>,
 ) {
     for (interaction, mut sprite, link) in &mut interaction_query {
         match *interaction {
@@ -194,12 +197,19 @@ fn button_system(
                         next_state.set(Focus::Science);
                     }
                     ButtonPath::ProductionMenu => {
-                        println!("Entering Production");
                         next_state.set(Focus::Production);
                     }
                     ButtonPath::MissionMenu => {
-                        println!("Entering Mission");
                         next_state.set(Focus::Mission);
+                    }
+
+                    ButtonPath::StartMission => {
+                        println!("Starting a Mission!");
+                        *mission_params = MissionParams {
+                            loadout: vec![],
+                            enemy: "First enemy".to_string(),
+                        };
+                        next_scene.set(GameState::Touhou);
                     }
                 }
             }
@@ -241,6 +251,11 @@ fn quit_hud_element_system(
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let assets = load_xcom_assets(&asset_server);
+    commands.insert_resource(MissionParams {
+        loadout: vec![],
+        enemy: "".to_string(),
+    });
+
     commands.insert_resource(XcomState {
         time: 371520,
         research: vec![Research {
