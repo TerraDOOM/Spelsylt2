@@ -3,6 +3,7 @@ use bevy::render::camera::ScalingMode;
 use crate::prelude::*;
 
 mod bullet;
+mod enemy;
 
 #[derive(Component, Clone, Default)]
 struct TouhouMarker;
