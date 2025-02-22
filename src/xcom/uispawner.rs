@@ -414,7 +414,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_button(
                         option_box,
                         "Start mission",
-                        ButtonPath::MainMenu,
+                        ButtonPath::StartMission,
                         &*context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),

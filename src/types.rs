@@ -2,13 +2,13 @@ use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct Mission {
-    id: String,
-    name: String,
-    enemy: String,
-    requirment: Vec<String>,
-    consequences: Vec<String>,
-    rewards: Vec<String>,
-    time_left: usize,
+    pub id: String,
+    pub name: String,
+    pub enemy: String,
+    pub requirment: Vec<String>,
+    pub consequences: Vec<String>,
+    pub rewards: Vec<String>,
+    pub time_left: usize,
 }
 
 pub struct Research {
@@ -48,4 +48,10 @@ pub enum Tech {
     MagicBullet,
     MachineGun,
     Rocket,
+}
+
+#[derive(Resource)]
+pub struct MissionParams {
+    pub loadout: Vec<String>,
+    pub enemy: String,
 }
