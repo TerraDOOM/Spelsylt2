@@ -33,6 +33,10 @@ struct Circle {
 }
 
 impl Circle {
+    fn new(radius: f32, pos: Vec2) -> Self {
+        Self { pos, radius }
+    }
+
     fn within(&self, rect: Rect) -> bool {
         let Self { pos, radius } = *self;
 
@@ -52,7 +56,7 @@ struct GameplayRect {
 }
 
 pub fn touhou_plugin(app: &mut App) {
-    app.add_plugins(bullet::bullet_plugin)
+    app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
         .add_systems(
             OnEnter(GameState::Touhou),
             (spawn_player, create_gameplay_rect, make_game_camera),
@@ -67,10 +71,10 @@ fn make_game_camera(mut commands: Commands) {
         OrthographicProjection {
             near: -1000.0,
             far: 1000.0,
-            viewport_origin: Vec2::ZERO,
+            viewport_origin: Vec2::splat(0.5),
             scaling_mode: ScalingMode::Fixed {
-                width: 800.0,
-                height: 600.0,
+                width: 1920.0,
+                height: 1080.0,
             },
             scale: 1.0,
             area: Rect::new(0.0, 0.0, 800.0, 600.0),
@@ -88,10 +92,12 @@ pub struct Player {
 }
 
 pub fn create_gameplay_rect(mut commands: Commands) {
+    const SIZE: Vec2 = Vec2::new(1920.0, 1080.0);
+
     commands.insert_resource(GameplayRect {
         rect: Rect {
-            min: Vec2::new(100.0, 0.0),
-            max: Vec2::new(700.0, 600.0),
+            min: -SIZE / 2.0,
+            max: SIZE / 2.0,
         },
     });
 }

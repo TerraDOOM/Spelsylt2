@@ -1,4 +1,11 @@
-use bevy::{input::common_conditions::*, prelude::*, winit::UpdateMode, winit::WinitSettings};
+#![allow(unused_mut)]
+
+use bevy::{
+    dev_tools::{self, DevToolsPlugin},
+    input::common_conditions::*,
+    prelude::*,
+    winit::{UpdateMode, WinitSettings},
+};
 use std::time::Duration;
 
 mod prelude;
@@ -14,13 +21,25 @@ enum GameState {
     Touhou,
 }
 
+fn toggle_overlay(
+    input: Res<ButtonInput<KeyCode>>,
+    mut options: ResMut<bevy::dev_tools::ui_debug_overlay::UiDebugOptions>,
+) {
+    if input.just_pressed(KeyCode::Space) {
+        // The toggle method will enable the debug_overlay if disabled and disable if enabled
+        options.toggle();
+    }
+}
+
 fn main() {
     App::new()
         .insert_resource(WinitSettings::game())
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(dev_tools::ui_debug_overlay::DebugUiPlugin)
         .add_plugins((xcom::xcom_plugin, touhou::touhou_plugin))
         .init_state::<GameState>()
         .add_systems(Startup, global_setup)
+        .add_systems(Update, toggle_overlay)
         .add_systems(
             Update,
             (
