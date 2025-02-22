@@ -332,7 +332,6 @@ fn time_to_date(time: usize) -> String {
         335..=365 => { month = "Dec".to_owned(); day_reduction = 334; }
         _ => {}
     }
-    dbg!(time); 
     format!("{}\n{} {}\n{:02}:{:02}", 1985 + (time / (24*60*365)), month, (time / (24*60)) - day_reduction, (time / 60) % 24, time % 60)
 }
 
