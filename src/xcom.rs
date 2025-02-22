@@ -109,6 +109,7 @@ pub struct XcomResources {
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
     pub loadout: Handle<Image>,
+    pub circle: Handle<Image>,
     pub font: Handle<Font>,
 }
 
@@ -196,7 +197,9 @@ fn button_system(
                 }
             }
             Interaction::Hovered => {
-                sprite.image = context.assets.button_normal_hover.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal_hover.clone();
+                }
             }
             Interaction::None => {
                 sprite.image = context.assets.button_normal.clone();
@@ -275,12 +278,12 @@ fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
         Button,
         ButtonLink(ButtonPath::MissionMenu),
         Node {
-            width: Val::Px(150.0),
-            height: Val::Px(150.0),
+            width: Val::Px(50.0),
+            height: Val::Px(50.0),
             border: UiRect::all(Val::Px(5.0)),
             ..default()
         },
-        ImageNode::new(context.assets.button_normal.clone()),
+        ImageNode::new(context.assets.circle.clone()),
         BorderColor(Color::BLACK),
         BorderRadius::MAX,
         BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
@@ -350,6 +353,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             ),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
+        circle: asset_server.load("Enemies/Redcirle.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
