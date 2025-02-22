@@ -9,7 +9,7 @@ pub fn enemy_plugin(app: &mut App) {
     app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
         .add_systems(
             FixedUpdate,
-            process_enemy_emitters::<CircularAimedEmitter>.run_if(in_state(GameState::Touhou)),
+            process_enemy_emitters::<CircularAimedEmitter>.in_set(TouhouSets::Gameplay),
         );
 }
 
@@ -37,40 +37,50 @@ pub struct CircularAimedEmitter {
     bullet: BulletBundle,
     count: usize,
 }
+
+#[derive(Component)]
+struct Emitter {}
+
 #[derive(Bundle)]
-pub struct EmitterBundle<E: BulletEmitter> {
+pub struct EmitterBundle {
+    emitter: Emitter,
+    timer: Timer,
+    bullet_spawner: BulletSpawner,
     transform: Transform,
-    emitter: E,
+}
+
+#[derive(Component)]
+struct BulletSpawner {
+    bullet_bundle: BulletBundle,
+
 }
 
 trait BulletEmitter: Component {
     fn emit(&mut self, time: Time, commands: &mut Commands, pos: Vec3);
 }
 
-impl BulletEmitter for CircularAimedEmitter {
-    fn emit(&mut self, time: Time, commands: &mut Commands, pos: Vec3) {
-        self.timer.tick(time.delta());
+fn circular_aimed_emitter(&mut self, time: Time, commands: &mut Commands, pos: Vec3) {
+    self.timer.tick(time.delta());
 
-        let mut bullet = self.bullet.clone();
-        bullet.transform.translation += pos;
+    let mut bullet = self.bullet.clone();
+    bullet.transform.translation += pos;
 
-        if self.timer.finished() {
-            self.timer.reset();
-            let ang = TAU / self.count as f32;
-            for i in 0..self.count {
-                let mut bullet = bullet.clone();
-                let dir = Vec2::from_angle(ang * i as f32);
-                bullet.transform.translation += (dir * self.offset).extend(0.0);
-                let mut commands = commands.spawn(bullet);
+    if self.timer.finished() {
+        self.timer.reset();
+        let ang = TAU / self.count as f32;
+        for i in 0..self.count {
+            let mut bullet = bullet.clone();
+            let dir = Vec2::from_angle(ang * i as f32);
+            bullet.transform.translation += (dir * self.offset).extend(0.0);
+            let mut commands = commands.spawn(bullet);
 
-                if let Some(normal) = self.normal {
-                    let velocity = dir.rotate(normal.velocity);
-                    commands.add_bullet(NormalBullet { velocity });
-                }
-                if let Some(rotation) = self.rotation {
-                    let origin = rotation.origin + pos.xy();
-                    commands.add_bullet(RotatingBullet { origin, ..rotation });
-                }
+            if let Some(normal) = self.normal {
+                let velocity = dir.rotate(normal.velocity);
+                commands.add_bullet(NormalBullet { velocity });
+            }
+            if let Some(rotation) = self.rotation {
+                let origin = rotation.origin + pos.xy();
+                commands.add_bullet(RotatingBullet { origin, ..rotation });
             }
         }
     }
@@ -122,7 +132,7 @@ pub fn spawn_enemy(mut commands: Commands, asset_server: Res<AssetServer>) {
                     }),
                     offset: 150.0,
                     bullet: BulletBundle {
-                        collider: Collider { radius: 5.0 },
+                        collider: Collider { radius: 50.0 },
                         sprite: Sprite {
                             image: asset_server.load("bullets/bullet1.png"),
                             ..Default::default()
