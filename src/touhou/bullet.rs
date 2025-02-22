@@ -144,9 +144,9 @@ fn set_alt_fire(
             weapon.timer.reset();
         }
     }
-    if input.just_pressed(KeyCode::ShiftLeft) {
+    if input.pressed(KeyCode::ShiftLeft) {
         player.insert(AltFire);
-    } else if input.just_released(KeyCode::ShiftLeft) {
+    } else if input.released(KeyCode::ShiftLeft) {
         player.remove::<AltFire>();
     }
 }
@@ -163,12 +163,12 @@ fn fire_weapons(
     let alt_fire = alt.is_some();
 
     for (mut weapon, is_alt) in &mut weapons {
-        weapon.timer.tick(time.delta());
-
         // we are in the wrong weapon group
         if is_alt.is_some() != alt_fire {
             continue;
         }
+
+        weapon.timer.tick(time.delta());
 
         if weapon.timer.just_finished() {
             let bullet = weapon.spawn_bullet(pos);
