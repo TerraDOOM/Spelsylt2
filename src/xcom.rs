@@ -9,6 +9,20 @@ pub fn xcom_plugin(app: &mut App) {
             Update,
             (update, button_system).run_if(in_state(GameState::Xcom)),
         );
+
+    app.init_state::<Focus>();
+
+    app.add_systems(OnEnter(Focus::Science), on_science);
+}
+
+#[derive(Component)]
+struct ScienceScreen;
+
+pub fn on_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
+    println!("woo");
+    for mut science_node in &mut science_query {
+        science_node.display = Display::Flex;
+    }
 }
 
 #[derive(Component)]
@@ -47,6 +61,15 @@ pub enum ButtonPath {
     MissionMenu,
 }
 
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+enum Focus {
+    #[default]
+    Map,
+    Science,
+    Production,
+    Mission,
+}
+
 #[derive(Component)]
 struct ButtonLink(ButtonPath);
 
@@ -57,6 +80,7 @@ fn button_system(
     >,
     mut text_query: Query<&mut Text>,
     context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
 ) {
     for (interaction, mut sprite, link, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
@@ -71,7 +95,7 @@ fn button_system(
                         **text = "Main menu".to_string();
                     }
                     ButtonPath::ScienceMenu => {
-                        **text = "Science menu".to_string();
+                        next_state.set(Focus::Science);
                     }
                     ButtonPath::ProductionMenu => {
                         **text = "Prodcution menu".to_string();
@@ -179,6 +203,104 @@ fn on_xcom(
             make_button(parent, "Save".to_string(), ButtonPath::MainMenu, &*context);
             make_button(parent, "Load".to_string(), ButtonPath::MainMenu, &*context);
         });
+
+    //ScienceHud
+    commands
+        .spawn((
+            ScienceScreen,
+            Node {
+                width: Val::Percent(70.0),
+                height: Val::Percent(70.0),
+                right: Val::Vw(0.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                display: Display::None,
+                ..default()
+            },
+            ImageNode::new(context.assets.button_normal_big.clone()),
+        ))
+        .with_children(|parent| {
+            //Top 30% of the screen for found research and icons
+            parent
+                .spawn(
+                    (Node {
+                        width: Val::Percent(50.0),
+                        height: Val::Percent(30.0),
+                        top: Val::Vh(0.0),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    }),
+                )
+                .with_children(|research_icon| make_icon(research_icon, &(*context)));
+
+            parent
+                .spawn(
+                    (Node {
+                        width: Val::Percent(50.0),
+                        height: Val::Percent(70.0),
+                        bottom: Val::Vh(0.0),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    }),
+                )
+                .with_children(|option_box| {
+                    //Make the research dynamic? TODO
+                    make_button(
+                        option_box,
+                        "Heavy Frame".to_string(),
+                        ButtonPath::ScienceMenu,
+                        &(*context),
+                    );
+                    make_button(
+                        option_box,
+                        "Hover Magic".to_string(),
+                        ButtonPath::ScienceMenu,
+                        &(*context),
+                    );
+                    make_button(
+                        option_box,
+                        "Ace Frame".to_string(),
+                        ButtonPath::ProductionMenu,
+                        &*context,
+                    );
+                    make_button(
+                        option_box,
+                        "Bomb".to_string(),
+                        ButtonPath::ProductionMenu,
+                        &*context,
+                    );
+                });
+        });
+}
+
+fn make_icon(parent: &mut ChildBuilder, context: &XcomState) {
+    parent
+        .spawn((
+            Node {
+                width: Val::Px(64.0),
+                height: Val::Px(64.0),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ImageNode::new(context.assets.button_green.clone()),
+        ))
+        .with_child((
+            Text::new("ICON"),
+            TextFont {
+                font: context.assets.font.clone(),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.9)),
+        ));
 }
 
 fn make_button(parent: &mut ChildBuilder, text: String, link_id: ButtonPath, context: &XcomState) {
