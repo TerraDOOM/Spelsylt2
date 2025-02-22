@@ -49,3 +49,9 @@ pub enum Tech {
     MachineGun,
     Rocket,
 }
+
+#[derive(Resource)]
+pub struct MissionParams {
+    pub loadout: Vec<String>,
+    pub enemy: String,
+}
