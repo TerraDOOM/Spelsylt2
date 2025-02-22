@@ -44,8 +44,17 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                     TextColor(Color::srgb(0.7, 0.7, 0.9)),
                 ));
 
-            let mut make_geo_button =
-                |name, id| make_button(parent, name, id, &*context, Val::Px(256.0), Val::Px(64.0), default_button_node());
+            let mut make_geo_button = |name, id| {
+                make_button(
+                    parent,
+                    name,
+                    id,
+                    &*context,
+                    Val::Px(256.0),
+                    Val::Px(64.0),
+                    default_button_node(),
+                )
+            };
 
             make_geo_button("Research", ButtonPath::ScienceMenu);
             make_geo_button("Production", ButtonPath::ProductionMenu);
@@ -89,7 +98,7 @@ fn make_button(
             PickingBehavior {
                 should_block_lower: false,
                 ..default()
-            }
+            },
         ));
 }
 
@@ -121,9 +130,15 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     height: Val::Percent(70.0),
                     column_gap: Val::ZERO,
                     flex_direction: FlexDirection::Column,
-                    padding: UiRect { top: Val::Percent(35.0), ..default() },
+                    padding: UiRect {
+                        top: Val::Percent(35.0),
+                        ..default()
+                    },
                     align_self: AlignSelf::Stretch,
-                    overflow: Overflow { x: OverflowAxis::Clip, y: OverflowAxis::Scroll },
+                    overflow: Overflow {
+                        x: OverflowAxis::Clip,
+                        y: OverflowAxis::Scroll,
+                    },
                     overflow_clip_margin: OverflowClipMargin::border_box(),
                     ..default_button_node()
                 })
@@ -138,11 +153,15 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                             &*context,
                             Val::Percent(80.0),
                             Val::Px(6000.0),
-                            Node { min_height: Val::Px(40.0), max_height: Val::Px(40.0), 
-                                padding: UiRect::ZERO, 
+                            Node {
+                                min_height: Val::Px(40.0),
+                                max_height: Val::Px(40.0),
+                                padding: UiRect::ZERO,
                                 margin: UiRect::ZERO,
                                 overflow: Overflow::clip(),
-                                column_gap: Val::Px(0.0), ..Default::default() }
+                                column_gap: Val::Px(0.0),
+                                ..Default::default()
+                            },
                         );
                     };
 
@@ -185,10 +204,7 @@ pub fn update_scroll_position(
 ) {
     for mouse_wheel_event in mouse_wheel_events.read() {
         let (mut dx, mut dy) = match mouse_wheel_event.unit {
-            MouseScrollUnit::Line => (
-                mouse_wheel_event.x * 21.0,
-                mouse_wheel_event.y * 21.0,
-            ),
+            MouseScrollUnit::Line => (mouse_wheel_event.x * 21.0, mouse_wheel_event.y * 21.0),
             MouseScrollUnit::Pixel => (mouse_wheel_event.x, mouse_wheel_event.y),
         };
 
@@ -208,7 +224,6 @@ pub fn update_scroll_position(
         }
     }
 }
-
 
 pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(
