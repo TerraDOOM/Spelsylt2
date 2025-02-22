@@ -19,9 +19,14 @@ pub fn xcom_plugin(app: &mut App) {
 struct ScienceScreen;
 
 pub fn on_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
-    println!("woo");
     for mut science_node in &mut science_query {
         science_node.display = Display::Flex;
+    }
+}
+
+pub fn off_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
+    for mut science_node in &mut science_query {
+        science_node.display = Display::None;
     }
 }
 
