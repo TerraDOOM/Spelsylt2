@@ -45,4 +45,7 @@ pub enum ResourceType {
 pub enum Tech {
     HeavyBody,
     HoverMagic,
+    MagicBullet,
+    MachineGun,
+    Rocket,
 }

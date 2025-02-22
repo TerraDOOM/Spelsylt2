@@ -15,6 +15,10 @@ pub fn xcom_plugin(app: &mut App) {
         .add_systems(
             Update,
             (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
+        )
+        .add_systems(
+            Update,
+            (unequip_loadout).run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
         );
 
     app.init_state::<Focus>();
@@ -114,7 +118,7 @@ pub struct XcomState {
     pub resources: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
     pub active_missions: Vec<Mission>,
-    pub loudout: HashMap<Slot, Option<ResourceType>>,
+    pub loadout: HashMap<Slot, Option<ResourceType>>,
     pub timer: Timer,
 }
 
@@ -236,7 +240,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         active_missions: vec![],
         selected_research: None,
         selected_production: None,
-        loudout: HashMap::from([
+        loadout: HashMap::from([
             (Slot::Front, Some(Pilot)),
             (Slot::Engine, Some(Engine_T1)),
             (Slot::Core1, None),
@@ -321,9 +325,6 @@ fn on_xcom(
 fn off_xcom() {}
 
 fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
-    let mut icons = HashMap::new();
-    icons.insert(Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png"));
-
     XcomResources {
         geo_map: asset_server.load("Xcom_hud/Earth.png"),
         placeholder: asset_server.load("mascot.png"),
@@ -334,7 +335,18 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
         loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
-        icons,
+        icons: HashMap::from([
+            (Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png")),
+            (
+                Tech::MagicBullet,
+                asset_server.load("Xcom_hud/Magic_bullet.png"),
+            ),
+            (
+                Tech::MachineGun,
+                asset_server.load("Xcom_hud/Machingun.png"),
+            ),
+            (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
+        ]),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
@@ -431,5 +443,5 @@ fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
     //Chance for invasion/mission TODO
     //Tick research and production
 
-    //Change hud
+    //Change hudv
 }

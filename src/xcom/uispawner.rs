@@ -230,6 +230,24 @@ fn default_button_node() -> Node {
     }
 }
 
+pub fn unequip_loadout(
+    mut context: ResMut<XcomState>,
+    mut interaction_query: Query<
+        (&Interaction, &ShipComponent, &mut Children),
+        (Changed<Interaction>, With<ShipComponent>),
+    >,
+    mut image_query: Query<&mut ImageNode>,
+) {
+    for (interaction, component, mut children) in &mut interaction_query {
+        if *interaction == Interaction::Pressed {
+            dbg!(*interaction);
+            context.loadout.insert(component.0, None);
+            let mut node = image_query.get_mut(children[0]).unwrap();
+            *node = ImageNode::new(context.assets.button_green.clone());
+        }
+    }
+}
+
 pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     commands.spawn_hud(
         context,
@@ -252,7 +270,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                 .with_children(|ship_box| {
                     make_ship_icon(
                         ship_box,
-                        context.assets.button_green.clone(),
+                        context.assets.placeholder.clone(),
                         &(*context),
                         Val::Px(0.0),
                         Val::Px(0.0),
@@ -268,7 +286,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     );
                     make_ship_icon(
                         ship_box,
-                        context.assets.button_green.clone(),
+                        context.assets.icons[&Tech::MagicBullet].clone(),
                         &(*context),
                         Val::Px(0.0),
                         Val::Px(64.0),
@@ -276,7 +294,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     );
                     make_ship_icon(
                         ship_box,
-                        context.assets.button_green.clone(),
+                        context.assets.icons[&Tech::MachineGun].clone(),
                         &(*context),
                         Val::Px(-96.0),
                         Val::Px(-32.0),
@@ -284,7 +302,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     );
                     make_ship_icon(
                         ship_box,
-                        context.assets.button_green.clone(),
+                        context.assets.icons[&Tech::Rocket].clone(),
                         &(*context),
                         Val::Px(96.0),
                         Val::Px(-96.0),
@@ -358,16 +376,6 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     );
 }
 
-/*
-//Not called yet
-fn update_loadout_hud(Query<
-        (&Interaction, &ShipComponent),
-    (Changed::<Interaction>, With<ShipComponent>),
-    >,
-                      context: ResMut<XcomState>,) {
-
-}*/
-
 fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &XcomState) {
     parent
         .spawn((
@@ -404,6 +412,7 @@ fn make_ship_icon(
 ) {
     parent
         .spawn((
+            Button,
             Node {
                 width: Val::Px(64.0),
                 height: Val::Px(64.0),
