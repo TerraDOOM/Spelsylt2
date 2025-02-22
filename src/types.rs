@@ -11,6 +11,7 @@ pub struct Mission {
     pub time_left: usize,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Research {
     pub id: Tech,
     pub name: String,
@@ -54,4 +55,5 @@ pub enum Tech {
 pub struct MissionParams {
     pub loadout: Vec<String>,
     pub enemy: String,
+    //    pub mission: Mission,
 }

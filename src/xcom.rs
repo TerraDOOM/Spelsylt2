@@ -46,24 +46,38 @@ pub struct ProdScreen;
 #[derive(Component)]
 pub struct MissionScreen;
 
-pub fn on_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
-    println!("On_science");
+#[derive(Component)]
+pub struct CurrentResearch;
+
+pub fn on_science(
+    mut science_query: Query<&mut Node, With<ScienceScreen>>,
+    mut current_research_text: Query<&mut Text, With<CurrentResearch>>,
+    context: ResMut<XcomState>,
+) {
     for mut science_node in &mut science_query {
         science_node.display = Display::Flex;
+    }
+
+    for mut text in &mut current_research_text {
+        if let Some(selected_research) = &context.selected_research {
+            **text = format![
+                "Currently researching: \n{}",
+                selected_research.name.clone()
+            ];
+        } else {
+            **text = "Not researching anything".to_string();
+        }
     }
 }
 
 pub fn off_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
-    println!("_science");
     for mut science_node in &mut science_query {
         science_node.display = Display::None;
     }
 }
 
 pub fn on_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
-    println!("On_prod");
     for mut prod_node in &mut prod_query {
-        println!("lol");
         prod_node.display = Display::Flex;
     }
 }
@@ -118,7 +132,8 @@ pub struct XcomResources {
 #[derive(Resource)]
 pub struct XcomState {
     pub time: usize,
-    pub research: Vec<Research>,
+    pub finished_research: Vec<Research>,
+    pub possible_research: Vec<Research>,
     pub selected_research: Option<Research>,
     pub selected_production: Option<ResourceType>,
     pub resources: HashMap<ResourceType, Resources>,
@@ -126,6 +141,7 @@ pub struct XcomState {
     pub active_missions: Vec<Mission>,
     pub loadout: HashMap<Slot, Option<ResourceType>>,
     pub timer: Timer,
+    pub speed: usize,
 }
 
 #[repr(usize)]
@@ -136,6 +152,7 @@ pub enum ButtonPath {
     ProductionMenu,
     MissionMenu,
     StartMission,
+    StartResearch,
 }
 
 #[repr(usize)]
@@ -166,20 +183,28 @@ struct BackDropFade;
 #[derive(Component)]
 struct LoadoutIcon;
 
+#[derive(Component, Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct ScienceSelect(pub Tech);
+
 #[derive(Component)]
 pub struct MissionMarker;
 
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut ImageNode, &ButtonLink),
+        (
+            &Interaction,
+            &mut ImageNode,
+            &ButtonLink,
+            Option<&ScienceSelect>,
+        ),
         (Changed<Interaction>, With<Button>),
     >,
-    context: ResMut<XcomState>,
+    mut context: ResMut<XcomState>,
     mut mission_params: ResMut<MissionParams>,
     mut next_state: ResMut<NextState<Focus>>,
     mut next_scene: ResMut<NextState<GameState>>,
 ) {
-    for (interaction, mut sprite, link) in &mut interaction_query {
+    for (interaction, mut sprite, link, potential_tech) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
@@ -210,6 +235,20 @@ fn button_system(
                             enemy: "First enemy".to_string(),
                         };
                         next_scene.set(GameState::Touhou);
+                    }
+
+                    ButtonPath::StartResearch => {
+                        println!("Changing research TODO");
+                        if let Some(tech) = potential_tech {
+                            if let Some(i) = context
+                                .possible_research
+                                .iter()
+                                .position(|n| n.id == tech.0)
+                            {
+                                context.selected_research =
+                                    Some(context.possible_research[i].clone());
+                            }
+                        }
                     }
                 }
             }
@@ -258,7 +297,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.insert_resource(XcomState {
         time: 371520,
-        research: vec![Research {
+        finished_research: vec![Research {
+            id: Tech::HeavyBody,
+            name: "Normal jetplane".to_string(),
+            description: "A normal fucking plane, kinda shit ngl".to_string(),
+            cost: 50,
+            prerequisites: vec![],
+            progress: 50,
+        }],
+        possible_research: vec![Research {
             id: Tech::HeavyBody,
             name: "Heavy Body".to_string(),
             description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
@@ -277,7 +324,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             (Slot::LeftWing1, Some(Gun_machinegun)),
             (Slot::RightWing1, Some(Gun_Rocket)),
         ]),
-        timer: Timer::new(Duration::from_secs_f32(1.0), TimerMode::Repeating),
+        timer: Timer::new(Duration::from_secs_f32(0.8), TimerMode::Repeating),
+        speed: 5,
         resources: vec![
             Resources {
                 name: Scientists,
