@@ -111,6 +111,8 @@ pub(crate) enum BulletType {
     Normal(NormalBullet),
     Rotating(RotatingBullet),
     Homing(HomingBullet),
+    Stutter(StutterBullet),
+    Wave(WaveBullet),
 }
 
 impl Weapon {
@@ -209,6 +211,19 @@ pub struct NormalBullet {
 pub struct HomingBullet {
     pub rotation_speed: f32,
     pub seeking_time: f32,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct StutterBullet {
+    pub wait_time: f32,
+    pub initial_velocity: Vec2,
+    pub has_started: bool,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct WaveBullet {
+    pub true_velocity: Vec2,
+    pub sine_mod: f32,
 }
 
 #[derive(Debug, Copy, Clone, Component)]
@@ -386,6 +401,27 @@ fn move_homing_bullets(
     }
 }
 
+fn move_stutter_bullets(
+    mut bullet_query: Query<(&mut StutterBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() < bullet.wait_time {
+            velocity.velocity = Vec2::ZERO;
+        } else if !bullet.has_started {
+            velocity.velocity = bullet.initial_velocity;
+            bullet.has_started = true;
+        }
+    }
+}
+
+fn move_wave_bullets(
+    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        velocity.velocity = bullet.true_velocity * (lifetime.0.elapsed_secs()*bullet.sine_mod).sin();
+    }
+}
+
 fn tick_bullets(time: Res<Time>, mut bullets: Query<&mut Lifetime, Bullets>) {
     for mut watch in &mut bullets {
         watch.0.tick(time.delta());
@@ -418,6 +454,12 @@ impl AsBulletKind for HomingBullet {
     }
 }
 
+impl AsBulletKind for StutterBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Stutter(self)
+    }
+}
+
 impl AsBulletKind for BulletType {
     fn as_bullet_type(self) -> BulletType {
         self
@@ -432,6 +474,8 @@ impl<'a> BulletCommandExt for EntityCommands<'a> {
             BulletType::Normal(normal) => self.insert(normal),
             BulletType::Rotating(rotating) => self.insert(rotating),
             BulletType::Homing(homing) => self.insert(homing),
+            BulletType::Stutter(stutter) => self.insert(stutter),
+            BulletType::Wave(wave) => self.insert(wave),
         }
     }
 }
