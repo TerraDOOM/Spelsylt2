@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::xcom::*;
 
-pub fn SpawnGeoHUD(commands: &mut Commands, context: &ResMut<XcomState>) {
+pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
     commands
         .spawn((
             Node {
@@ -108,7 +108,7 @@ fn make_button(
         ));
 }
 
-pub fn SpawnScienceHUD(commands: &mut Commands, context: &ResMut<XcomState>) {
+pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
     commands
         .spawn((
             ScienceScreen, //The fade backdrop. Will also be a button out
@@ -211,7 +211,7 @@ pub fn SpawnScienceHUD(commands: &mut Commands, context: &ResMut<XcomState>) {
         });
 }
 
-pub fn SpawnManufacturingHUD(commands: &mut Commands, context: &ResMut<XcomState>) {
+pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
     commands
         .spawn((
             ProdScreen, //The fade backdrop. Will also be a button out
@@ -284,7 +284,7 @@ pub fn SpawnManufacturingHUD(commands: &mut Commands, context: &ResMut<XcomState
         });
 }
 
-pub fn SpawnMissionHUD(commands: &mut Commands, context: &ResMut<XcomState>) {
+pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
     commands
         .spawn((
             MissionScreen, //The fade backdrop. Will also be a button out
