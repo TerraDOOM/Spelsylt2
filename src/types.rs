@@ -21,7 +21,14 @@ pub struct Research {
 
 #[derive(Resource)]
 pub struct Resources {
-    pub name: String,
+    pub name: ResourceType,
     pub description: String,
     pub amount: usize,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum ResourceType {
+    Scientists,
+    MagicDust,
 }

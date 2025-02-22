@@ -1,4 +1,6 @@
 use crate::prelude::*;
+use std::collections::HashMap;
+use ResourceType::*;
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
 
@@ -21,6 +23,9 @@ pub struct XcomResources {
     placeholder: Handle<Image>,
     button_normal: Handle<Image>,
     button_normal_hover: Handle<Image>,
+    button_normal_big: Handle<Image>,
+    button_green: Handle<Image>,
+    button_green_hover: Handle<Image>,
     font: Handle<Font>,
 }
 
@@ -29,7 +34,7 @@ pub struct XcomState {
     time: usize,
     research: Vec<Research>,
     selected_research: Option<Research>,
-    resources: Vec<Resources>,
+    resources: HashMap<ResourceType, Resources>,
     assets: XcomResources,
 }
 
@@ -38,17 +43,19 @@ struct ButtonLink(String);
 
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut ImageNode, &Children),
+        (&Interaction, &mut ImageNode, &ButtonLink, &Children),
         (Changed<Interaction>, With<Button>),
     >,
     mut text_query: Query<&mut Text>,
     context: ResMut<XcomState>,
 ) {
-    for (interaction, mut sprite, children) in &mut interaction_query {
+    for (interaction, mut sprite, link, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
+                log::info!(link);
+
                 sprite.image = context.assets.button_normal_hover.clone();
             }
             Interaction::Hovered => {
@@ -62,16 +69,19 @@ fn button_system(
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let assets = load_Xcom_assets(&asset_server);
+    let assets = load_xcom_assets(&asset_server);
     commands.insert_resource(XcomState {
         time: 0,
         research: vec![],
         selected_research: None,
         resources: vec![Resources {
-            name: "Scientists".to_string(),
+            name: Scientists,
             description: "A talented researcher of the arcane".to_string(),
             amount: 5,
-        }],
+        }]
+        .into_iter()
+        .map(|r| (r.name.clone(), r))
+        .collect(),
         assets,
     });
 }
@@ -110,12 +120,11 @@ fn on_xcom(
         .with_children(|parent| {
             parent //The clock button
                 .spawn((
-                    Button,
                     Node {
                         width: Val::Px(256.0),
                         height: Val::Px(256.0),
                         // horizontally center child text
-                        justify_content: JustifyContent::Center,
+                        justify_content: JustifyContent::FlexEnd,
                         // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
@@ -123,13 +132,13 @@ fn on_xcom(
                     ImageNode::new(context.assets.button_normal.clone()),
                 ))
                 .with_child((
-                    Text::new("1985\n Apr 5th \n 10:49"),
+                    Text::new("1985\nApr 5th\n10:49"),
                     TextFont {
                         font: context.assets.font.clone(),
                         font_size: 33.0,
                         ..default()
                     },
-                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    TextColor(Color::srgb(0.7, 0.7, 0.9)),
                 ));
 
             make_button(
@@ -153,6 +162,7 @@ fn make_button(parent: &mut ChildBuilder, text: String, link_id: String, context
     parent
         .spawn((
             Button,
+            ButtonLink(link_id),
             Node {
                 width: Val::Px(256.0),
                 height: Val::Px(64.0),
@@ -171,26 +181,30 @@ fn make_button(parent: &mut ChildBuilder, text: String, link_id: String, context
                 font_size: 33.0,
                 ..default()
             },
-            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            TextColor(Color::srgb(0.7, 0.7, 0.9)),
         ));
 }
 
 fn off_xcom() {}
 
-fn load_Xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
+fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     XcomResources {
         geo_map: asset_server.load("placeholder_geomap.png"),
         placeholder: asset_server.load("mascot.png"),
         button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
         button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
+        button_normal_big: asset_server.load("Xcom_hud/Main_button_clicked.png"),
+        button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
+        button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
 
 fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
+    let scientists: usize = context.resources[&Scientists].amount.clone();
     context.time += 1;
     if let Some(selected_research) = &mut context.selected_research {
-        selected_research.progress += 1;
+        selected_research.progress += scientists;
     }
 }
 
