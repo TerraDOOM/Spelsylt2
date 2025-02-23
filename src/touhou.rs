@@ -2,6 +2,7 @@ use bevy::{
     ecs::query::QueryFilter, input::common_conditions::input_just_pressed,
     render::camera::ScalingMode,
 };
+use enemy::{EnemyMarker, Health};
 
 use crate::prelude::*;
 
@@ -107,6 +108,7 @@ pub fn touhou_plugin(app: &mut App) {
             FixedUpdate,
             (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
         )
+        .add_systems(FixedPostUpdate, (enemy_dead, last_enemy_dead))
         .add_systems(
             FixedPostUpdate,
             (on_death.run_if(player_dead), on_damage)
@@ -127,6 +129,23 @@ pub fn touhou_plugin(app: &mut App) {
 
 fn toggle_gizmos(mut r: ResMut<ShowGizmos>) {
     r.enabled = !r.enabled;
+}
+
+fn enemy_dead(mut commands: Commands, enemies: Query<(Entity, &Health), With<EnemyMarker>>) {
+    for (ent, health) in &enemies {
+        if **health == 0 {
+            commands.entity(ent).remove::<(EnemyMarker, Health)>();
+        }
+    }
+}
+
+fn last_enemy_dead(
+    enemies: Query<Entity, With<EnemyMarker>>,
+    mut mission_state: ResMut<NextState<MissionState>>,
+) {
+    if enemies.is_empty() {
+        mission_state.set(MissionState::Success)
+    }
 }
 
 fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
