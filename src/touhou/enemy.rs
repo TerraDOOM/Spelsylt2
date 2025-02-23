@@ -633,7 +633,7 @@ fn flood_emitter(
     }
 }
 
-const BULLET_SIZE: f32 = 12.0;
+const BULLET_SIZE: f32 = 15.0;
 
 fn circular_wave_emitter(
     mut commands: Commands,
@@ -741,6 +741,52 @@ fn circular_homing_emitter(
 }
 
 pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Res<MissionParams>) {
+    let red_girl_bullet = BulletBundle {
+        collider: Collider { radius: 5.0 },
+        sprite: Sprite {
+            image: assets.bullet1.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let red_girl_bullet_2 = BulletBundle {
+        collider: Collider { radius: 5.0 },
+        sprite: Sprite {
+            image: assets.bullet1.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let lizard_bullet = BulletBundle {
+        collider: Collider { radius: 5.0 },
+        sprite: Sprite {
+            image: assets.bullet1.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let tentacle_bullet = BulletBundle {
+        collider: Collider { radius: 5.0 },
+        sprite: Sprite {
+            image: assets.bullet1.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let moon_girl_bullet = BulletBundle {
+        collider: Collider { radius: 5.0 },
+        sprite: Sprite {
+            image: assets.bullet1.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
     match params.enemy {
         Enemies::RedGirl => {
             let (mut em1, mut em2, mut em3) = (vec![], vec![], vec![]);
@@ -748,7 +794,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                 .spawn(EnemyBundle {
                     sprite: Sprite {
                         image: assets.redgirl_sheet.clone(),
-                        custom_size: Some(Vec2::splat(100.0)),
+                        custom_size: Some(Vec2::splat(150.0)),
                         texture_atlas: Some(TextureAtlas {
                             layout: assets.redgirl_layout.clone(),
                             index: 0,
@@ -756,8 +802,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         ..Default::default()
                     },
                     animation: AnimatedSprite::new(0.1, 3, 0),
-                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
-                    collider: Collider { radius: 50.0 },
+                    transform: Transform::from_xyz(200.0, 0.0, 0.0),
+                    collider: Collider { radius: 150.0 },
                     health: Health(2000),
                     ..Default::default()
                 })
@@ -765,7 +811,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em1.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.05),
@@ -776,6 +822,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
                                         image: assets.bullet1.clone(),
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         ..Default::default()
                                     },
                                     ..Default::default()
@@ -793,7 +840,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em1.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.25),
@@ -804,7 +851,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     collider: Collider { radius: 10.0 },
                                     sprite: Sprite {
                                         image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::from((20.0, 20.0))),
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         ..Default::default()
                                     },
                                     ..Default::default()
@@ -827,7 +874,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em2.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.5),
@@ -838,6 +885,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
                                         image: assets.bullet1.clone(),
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         ..Default::default()
                                     },
                                     ..Default::default()
@@ -855,7 +903,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em2.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.5),
@@ -866,6 +914,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
                                         image: assets.bullet1.clone(),
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         ..Default::default()
                                     },
                                     ..Default::default()
@@ -883,7 +932,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em3.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.1),
@@ -894,6 +943,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
                                         image: assets.bullet1.clone(),
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         ..Default::default()
                                     },
                                     ..Default::default()
@@ -933,11 +983,11 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                 .spawn(EnemyBundle {
                     sprite: Sprite {
                         image: assets.tentacle.clone(),
-                        custom_size: Some(Vec2::splat(100.0)),
+                        custom_size: Some(Vec2::splat(150.0)),
                         ..Default::default()
                     },
-                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
-                    collider: Collider { radius: 50.0 },
+                    transform: Transform::from_xyz(200.0, 0.0, 0.0),
+                    collider: Collider { radius: 150.0 },
                     health: Health(1500),
                     ..Default::default()
                 })
@@ -945,7 +995,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em1.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(5.0),
@@ -975,7 +1025,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em2.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.05),
@@ -1003,7 +1053,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em3.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.4),
@@ -1053,7 +1103,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                 .spawn(EnemyBundle {
                     sprite: Sprite {
                         image: assets.lizard_sheet.clone(),
-                        custom_size: Some(Vec2::splat(100.0)),
+                        custom_size: Some(Vec2::splat(150.0)),
                         texture_atlas: Some(TextureAtlas {
                             layout: assets.lizard_layout.clone(),
                             index: 0,
@@ -1061,8 +1111,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         ..Default::default()
                     },
                     animation: AnimatedSprite::new(0.1, 3, 0),
-                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
-                    collider: Collider { radius: 50.0 },
+                    transform: Transform::from_xyz(200.0, 0.0, 0.0),
+                    collider: Collider { radius: 150.0 },
                     health: Health(2000),
                     ..Default::default()
                 })
@@ -1070,7 +1120,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em1.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.0),
@@ -1100,7 +1150,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em2.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.0),
@@ -1133,7 +1183,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em3.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(5.0),
@@ -1150,7 +1200,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::from((-200.0, 0.0)), TAU / 16.0),
+                                .rotation(Vec2::from((200.0, 0.0)), TAU / 16.0),
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
@@ -1193,8 +1243,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         ..Default::default()
                     },
                     animation: AnimatedSprite::new(0.1, 5, 0),
-                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
-                    collider: Collider { radius: 50.0 },
+                    transform: Transform::from_xyz(200.0, 0.0, 0.0),
+                    collider: Collider { radius: 150.0 },
                     health: Health(5000),
                     ..Default::default()
                 })
@@ -1202,7 +1252,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em1.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.05),
@@ -1230,7 +1280,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em2.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.01),
@@ -1255,7 +1305,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em12.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.5),
@@ -1284,7 +1334,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em3.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(1.0),
@@ -1317,7 +1367,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em4.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.05),
@@ -1346,7 +1396,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em4.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(0.05),
@@ -1375,7 +1425,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     em34.push(
                         parent
                             .spawn(EmitterBundle {
-                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                transform: Transform::from_xyz(200.0, 0.0, 0.0),
                                 emitter: Emitter {
                                     timer: Timer::new(
                                         Duration::from_secs_f32(4.0),
