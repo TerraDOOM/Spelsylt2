@@ -519,16 +519,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 cost: 30,
                 prerequisites: vec![Tech::MagicBullet],
                 progress: 0,
-            },
-            Research {
-                id: Tech::DeterganceT1,
-                equipable: false,
-                name: "Just be chill".to_string(),
-                description: "Makes incasion less likely, TODO".to_string(),
-                cost: 20,
-                prerequisites: vec![],
-                progress: 0,
-            },
+            }
         ],
         active_missions: vec![],
         finished_missions: vec![],

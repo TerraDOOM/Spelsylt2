@@ -119,6 +119,7 @@ pub fn touhou_plugin(app: &mut App) {
                 bullet::config_loadout.after(spawn_player),
                 make_game_camera,
                 set_mission_status,
+                play_music,
             )
                 .in_set(TouhouSets::EnterTouhou),
         )
@@ -149,6 +150,24 @@ pub fn touhou_plugin(app: &mut App) {
         .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
         .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
         .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+}
+
+fn play_music(
+    mission_params: Res<MissionParams>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    assets: Res<TouhouAssets>,
+) {
+    commands.spawn((
+        AudioPlayer::new(asset_server.load(match mission_params.enemy {
+/*            Enemies::RedGirl => "Music/Calm1.ogg",
+            Enemies::Lizard => "Music/Calm1.ogg",
+            Enemies::Tentacle => "Music/Calm1.ogg",
+            Enemies::MoonGirl => "Music/Calm1.ogg",*/
+            _ => "Music/Combat1.ogg",
+        })),
+        TouhouMarker,
+    ));
 }
 
 fn toggle_gizmos(mut r: ResMut<ShowGizmos>) {
