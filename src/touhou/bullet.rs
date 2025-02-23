@@ -7,6 +7,7 @@ use std::{
 use bevy::{
     color::palettes::css::{BLUE, RED},
     ecs::query::QueryFilter,
+    input::common_conditions::input_pressed,
     time::Stopwatch,
 };
 use enemy::{BulletSpawner, EnemyMarker, Health};
@@ -45,7 +46,7 @@ pub fn bullet_plugin(app: &mut App) {
                 check_bullet_bullet,
                 check_player_bullets,
                 despawn_bullets,
-                fire_weapons,
+                fire_weapons.run_if(input_pressed(KeyCode::KeyZ)),
                 tick_bullets,
             )
                 .run_if(in_state(GameState::Touhou)),
@@ -77,7 +78,7 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
         })
         .normal(Vec2::new(20.0, 0.0)),
         salted: true,
-        damage: 10,
+        damage: 1,
         phasing: false,
     }
 }
@@ -103,7 +104,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 bullet: BulletSpawner::new(bundle)
                     .normal(Vec2::new(10.0, 0.0))
                     .homing(60.0, TAU / 4.0, Target::Enemy),
-                delay: 3.0,
+                delay: 0.7,
                 deployed: false,
             }),
         salted: false,

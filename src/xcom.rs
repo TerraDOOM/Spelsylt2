@@ -11,7 +11,10 @@ use uispawner::*;
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup)
         .add_systems(OnEnter(GameState::Xcom), on_xcom)
-        .add_systems(PreUpdate, update_clock.run_if(in_state(GameState::Xcom)))
+        .add_systems(
+            PreUpdate,
+            update_clock.run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
+        )
         .add_systems(
             OnEnter(GameState::Xcom),
             |mut writer: EventWriter<XcomTick>| {
@@ -549,7 +552,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Resources {
                 name: Scientists,
                 description: "A talented researcher of the near arcane".to_string(),
-                amount: 5,
+                amount: 500000,
             },
             Resources {
                 name: Engineer,
@@ -574,95 +577,65 @@ fn spawn_mission(
     let mut rng = rand::rng();
 
     for tick in reader.read() {
-        let seed = rng.random_range(0..1000);
+        let seed = rng.random_range(0..=1000);
         let x = rng.random_range(120..800) as f32; //The x spawn range
         let y = rng.random_range(120..500) as f32; //The y spawn range
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=100 => {
-                if (context
-                    .finished_missions
-                    .iter()
-                    .find(|n| !(n.enemy == Enemies::MoonGirl && n.status == MissionStatus::Won))
-                    .is_some()
-                    && context.inventory[&Scientists].amount > 10)
-                {
-                    Mission {
-                        id: "moon_girl_active".to_string(),
-                        name: "Final mission".to_string(),
-                        enemy: Enemies::MoonGirl,
-                        requirment: vec![],
-                        consequences: vec![],
-                        rewards: vec![],
-                        time_left: 50,
-                        overworld_x: x,
-                        overworld_y: y,
-                        phase,
-                        status: MissionStatus::Pending,
-                    }
-                } else if context
-                    .finished_missions
-                    .iter()
-                    .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
-                    .is_some()
-                    || context.inventory[&Scientists].amount <= 10
-                {
-                    Mission {
-                        id: "Tentacle_active".to_string(),
-                        name: "Alien mutant spotted".to_string(),
-                        enemy: Enemies::Tentacle,
-                        requirment: vec![],
-                        consequences: vec![],
-                        rewards: vec![],
-                        time_left: 20 * 7200,
-                        overworld_x: x,
-                        overworld_y: y,
-                        phase,
-                        status: MissionStatus::Pending,
-                    }
-                } else if context
-                    .finished_missions
-                    .iter()
-                    .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
-                    .is_some()
-                {
-                    Mission {
-                        id: "Lizard_active".to_string(),
-                        name: "Lizarman engages".to_string(),
-                        enemy: Enemies::Lizard,
-                        requirment: vec![],
-                        consequences: vec![],
-                        rewards: vec![],
-                        time_left: 20 * 7200,
-                        overworld_x: x,
-                        overworld_y: y,
-                        phase,
-                        status: MissionStatus::Pending,
-                    }
-                } else if context
-                    .finished_missions
-                    .iter()
-                    .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
-                    .is_some()
-                {
-                    Mission {
-                        id: "RedGirl_active".to_string(),
-                        name: "Magical girl spotted".to_string(),
-                        enemy: Enemies::Tentacle,
-                        requirment: vec![],
-                        consequences: vec![],
-                        rewards: vec![],
-                        time_left: 20 * 7200,
-                        overworld_x: x,
-                        overworld_y: y,
-                        phase,
-                        status: MissionStatus::Pending,
-                    }
-                } else {
-                    return;
-                }
-            }
+            0..=200 if context.inventory[&Scientists].amount > 10 => Mission {
+                id: "moon_girl_active".to_string(),
+                name: "Final mission".to_string(),
+                enemy: Enemies::MoonGirl,
+                requirment: vec![],
+                consequences: vec![],
+                rewards: vec![],
+                time_left: 50,
+                overworld_x: x,
+                overworld_y: y,
+                phase,
+                status: MissionStatus::Pending,
+            },
+            200..=250 => Mission {
+                id: "Tentacle_active".to_string(),
+                name: "Alien mutant spotted".to_string(),
+                enemy: Enemies::Tentacle,
+                requirment: vec![],
+                consequences: vec![],
+                rewards: vec![],
+                time_left: 20 * 7200,
+                overworld_x: x,
+                overworld_y: y,
+                phase,
+                status: MissionStatus::Pending,
+            },
+            250..=300 => Mission {
+                id: "Lizard_active".to_string(),
+                name: "Lizarman engages".to_string(),
+                enemy: Enemies::Lizard,
+                requirment: vec![],
+                consequences: vec![],
+                rewards: vec![],
+                time_left: 20 * 7200,
+                overworld_x: x,
+                overworld_y: y,
+                phase,
+                status: MissionStatus::Pending,
+            },
+            300..=350 => Mission {
+                id: "RedGirl_active".to_string(),
+                name: "Magical girl spotted".to_string(),
+                enemy: Enemies::Tentacle,
+                requirment: vec![],
+                consequences: vec![],
+                rewards: vec![],
+                time_left: 20 * 7200,
+                overworld_x: x,
+                overworld_y: y,
+                phase,
+                status: MissionStatus::Pending,
+            },
+
             _ => {
                 return;
             }

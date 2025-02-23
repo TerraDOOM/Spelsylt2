@@ -19,6 +19,10 @@ pub fn enemy_plugin(app: &mut App) {
         })
         .add_systems(Update, animate_sprites)
         .add_systems(
+            OnEnter(GameState::Touhou),
+            |mut time: ResMut<EncounterTime>| time.time.reset(),
+        )
+        .add_systems(
             FixedUpdate,
             (
                 circular_rotating_emitter,
@@ -629,7 +633,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     },
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(4000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -809,7 +813,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     },
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(4000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
