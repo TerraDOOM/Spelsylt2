@@ -159,13 +159,16 @@ pub fn touhou_plugin(app: &mut App) {
 struct AmmoCount;
 #[derive(Component)]
 struct LifeCount;
+#[derive(Component)]
+struct HPBar;
 
 fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
+            TouhouMarker,
             Node {
                 width: Val::Vw(20.0),
-                height: Val::Vh(15.0),
+                height: Val::Vh(10.0),
                 left: Val::Px(0.),
                 bottom: Val::Px(0.),
                 ..default()
@@ -183,14 +186,70 @@ fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             TextColor(Color::srgb(0.7, 0.7, 0.9)),
         ));
+
+    commands
+        .spawn((
+            TouhouMarker,
+            Node {
+                width: Val::Vw(20.0),
+                height: Val::Vh(10.0),
+                left: Val::Px(0.),
+                bottom: -Val::Vh(10.),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+            ZIndex(1),
+        ))
+        .with_child((
+            Text::new("lol"),
+            LifeCount,
+            TextFont {
+                font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.4, 0.4)),
+        ));
+
+    commands.spawn((
+        TouhouMarker,
+        Node {
+            width: Val::Vw(80.0),
+            height: Val::Vh(10.0),
+            left: Val::Vw(10.),
+            bottom: -Val::Vh(90.),
+            ..default()
+        },
+        HPBar,
+        BackgroundColor(Color::srgba(1.0, 0.0, 0.0, 0.95)),
+        ZIndex(1),
+    ));
 }
 
 fn update_hud(
     ammo_count: Single<&Ammo, PlayerFilter>,
-    mut ammo_text: Query<&mut Text, (With<AmmoCount>)>,
+    lives_count: Single<&Life, PlayerFilter>,
+    enemy_hp: Single<&Health, With<EnemyMarker>>,
+    mut ammo_text: Query<&mut Text, (With<AmmoCount>, Without<LifeCount>)>,
+    mut hp_text: Query<&mut Text, (With<LifeCount>, Without<AmmoCount>)>,
+    mut hp_bar: Query<&mut Node, (With<HPBar>)>,
 ) {
     for mut text in &mut ammo_text {
         **text = format!["Ammo: {}", ***ammo_count];
+    }
+
+    for mut text in &mut hp_text {
+        **text = format!["Lives: {}", ***lives_count];
+    }
+
+    for mut node in &mut hp_bar {
+        *node = Node {
+            width: Val::Vw(80. * (***enemy_hp as f32) / 4000.),
+            height: Val::Vh(10.0),
+            left: Val::Vw(10.),
+            bottom: -Val::Vh(90.),
+            ..default()
+        }
     }
 }
 
@@ -206,7 +265,7 @@ fn play_music(
             ..default()
         },
         AudioPlayer::new(asset_server.load(match mission_params.enemy {
-            Enemies::RedGirl => "Music/Combat3.ogg",
+            Enemies::RedGirl => "Music/Comabt1.ogg",
             Enemies::Lizard => "Music/Combat2.ogg",
             Enemies::Tentacle => "Music/Combat3.ogg",
             Enemies::MoonGirl => "Music/Combat4.ogg",

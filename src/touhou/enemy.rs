@@ -336,7 +336,8 @@ fn divisive_emitter(
             let gap = 1920.0 / (circ.columns as f32 + 1.0);
             for i in 0..circ.columns {
                 let mut bullet = bullet.clone();
-                bullet.transform.translation += Vec2::from((-960.0 + (gap*(i+1) as f32), 600.0)).extend(0.0);
+                bullet.transform.translation +=
+                    Vec2::from((-960.0 + (gap * (i + 1) as f32), 600.0)).extend(0.0);
 
                 let mut commands = commands.spawn(bullet);
 
@@ -348,7 +349,8 @@ fn divisive_emitter(
             let gap = 1080.0 / (circ.rows as f32 + 1.0);
             for i in 0..circ.rows {
                 let mut bullet = bullet.clone();
-                bullet.transform.translation += Vec2::from((1000.0, -540.0 + (gap*(i+1) as f32))).extend(0.0);
+                bullet.transform.translation +=
+                    Vec2::from((1000.0, -540.0 + (gap * (i + 1) as f32))).extend(0.0);
 
                 let mut commands = commands.spawn(bullet);
 
@@ -615,13 +617,12 @@ fn flood_emitter(
             emitter.timer.reset();
 
             let mut bullet = bullet.clone();
-            let ang = Vec2::from_angle(
-                rng.random_range((spray.spray / -2.0)..=(spray.spray / 2.0))
-            );
+            let ang =
+                Vec2::from_angle(rng.random_range((spray.spray / -2.0)..=(spray.spray / 2.0)));
             let placement = rng.random_range(-540.0..=540.0);
 
             bullet.transform.translation = Vec2::from((920.0, placement)).extend(0.0);
-        
+
             let mut commands = commands.spawn(bullet);
 
             if let Some(normal) = spawner.normal {
@@ -1160,7 +1161,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             });
         }
         Enemies::MoonGirl => {
-            let (mut em1, mut em2, mut em3, mut em4, mut em12, mut em34) = (vec![], vec![], vec![], vec![], vec![], vec![]);
+            let (mut em1, mut em2, mut em3, mut em4, mut em12, mut em34) =
+                (vec![], vec![], vec![], vec![], vec![], vec![]);
             commands
                 .spawn(EnemyBundle {
                     sprite: Sprite {
@@ -1197,7 +1199,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                             })
                             .insert(DivisiveEmitter {
                                 columns: 19,
-                                rows: 11
+                                rows: 11,
                             })
                             .id(),
                     );
@@ -1222,9 +1224,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 .normal(Vec2::new(-5.0, 0.0)),
                                 active: Active(false),
                             })
-                            .insert(FloodEmitter {
-                                spray: TAU/16.0,
-                            })
+                            .insert(FloodEmitter { spray: TAU / 16.0 })
                             .id(),
                     );
                     em12.push(
@@ -1277,10 +1277,10 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 active: Active(false),
                             })
                             .insert(RotatingSprayEmitter {
-                                spray_width: TAU/4.0,
+                                spray_width: TAU / 4.0,
                                 firing_time: 1.0,
                                 firing_speed: 0.01,
-                                rotation_speed: TAU/8.0,
+                                rotation_speed: TAU / 8.0,
                                 rotation: 0.0,
                                 count: 0.0,
                                 spray_count: 2,
@@ -1306,7 +1306,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU/16.0),
+                                .rotation(Vec2::ZERO, TAU / 16.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1334,7 +1334,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU/-16.0),
+                                .rotation(Vec2::ZERO, TAU / -16.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1363,7 +1363,11 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 })
                                 .normal(Vec2::new(4.0, 0.0))
                                 .stutter(1.0, Vec2::new(4.0, 0.0), false)
-                                .homing(3.0, TAU/3.0, Target::Player),
+                                .homing(
+                                    3.0,
+                                    TAU / 3.0,
+                                    Target::Player,
+                                ),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1373,36 +1377,36 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                             .id(),
                     );
                 });
-                commands.spawn(Spellcard {
-                    emitters: em1,
-                    start_time: 0.0,
-                    end_time: 25.0,
-                });
-                commands.spawn(Spellcard {
-                    emitters: em2,
-                    start_time: 25.0,
-                    end_time: 45.0,
-                });
-                commands.spawn(Spellcard {
-                    emitters: em3,
-                    start_time: 45.0,
-                    end_time: 70.0,
-                });
-                commands.spawn(Spellcard {
-                    emitters: em4,
-                    start_time: 70.0,
-                    end_time: 100.0,
-                });
-                commands.spawn(Spellcard {
-                    emitters: em12,
-                    start_time: 0.0,
-                    end_time: 45.0,
-                });
-                commands.spawn(Spellcard {
-                    emitters: em34,
-                    start_time: 45.0,
-                    end_time: 100.0,
-                });
+            commands.spawn(Spellcard {
+                emitters: em1,
+                start_time: 0.0,
+                end_time: 25.0,
+            });
+            commands.spawn(Spellcard {
+                emitters: em2,
+                start_time: 25.0,
+                end_time: 45.0,
+            });
+            commands.spawn(Spellcard {
+                emitters: em3,
+                start_time: 45.0,
+                end_time: 70.0,
+            });
+            commands.spawn(Spellcard {
+                emitters: em4,
+                start_time: 70.0,
+                end_time: 100.0,
+            });
+            commands.spawn(Spellcard {
+                emitters: em12,
+                start_time: 0.0,
+                end_time: 45.0,
+            });
+            commands.spawn(Spellcard {
+                emitters: em34,
+                start_time: 45.0,
+                end_time: 100.0,
+            });
         }
         default => {}
     }
