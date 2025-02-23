@@ -87,7 +87,9 @@ enum TouhouSets {
 #[derive(Resource)]
 pub struct PlayerAssets {
     dead: Handle<Image>,
-    alive: Handle<Image>,
+    atlas_layout: TextureAtlasLayout,
+    atlas_handle: Handle<TextureAtlasLayout>,
+    alive_sheet: Handle<Image>,
 }
 
 pub fn touhou_plugin(app: &mut App) {
@@ -99,7 +101,10 @@ pub fn touhou_plugin(app: &mut App) {
     app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
         .init_state::<MissionState>()
         .insert_resource(ShowGizmos { enabled: false })
-        .add_systems(Startup, (load_player_assets, load_touhou_assets, create_gameplay_rect))
+        .add_systems(
+            Startup,
+            (load_player_assets, load_touhou_assets, create_gameplay_rect),
+        )
         .add_systems(
             OnEnter(GameState::Touhou),
             (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
@@ -120,7 +125,10 @@ pub fn touhou_plugin(app: &mut App) {
         )
         .add_systems(
             Update,
-            toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
+            (
+                toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
+                animate_player,
+            ),
         )
         .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
         // set them all to only run if gamestate is touhou
@@ -169,16 +177,23 @@ fn nuke_touhou(
     }
 }
 
+const N_SHIP_TEXTURES: usize = 2;
+
 fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let atlas =
+        TextureAtlasLayout::from_grid(UVec2::splat(64), N_SHIP_TEXTURES as u32, 2, None, None);
+
     commands.insert_resource(PlayerAssets {
         dead: asset_server.load("dead.png"),
-        alive: asset_server.load("Xcom_hud/Playerrocket1.png"),
+        alive_sheet: asset_server.load("Xcom_hud/Playerrocket1-sheet.png"),
+        atlas_layout: atlas.clone(),
+        atlas_handle: asset_server.add(atlas),
     })
 }
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies\\girl1.png"),
+        redgirl: asset_server.load("Enemies\\godhelp\\girl1.png"),
         bullet1: asset_server.load("bullets\\bullet1.png"),
     })
 }
@@ -186,7 +201,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 #[derive(Resource)]
 pub struct TouhouAssets {
     redgirl: Handle<Image>,
-    bullet1: Handle<Image>
+    bullet1: Handle<Image>,
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
@@ -203,7 +218,7 @@ fn on_damage(
 
     commands
         .entity(ent)
-        .insert(Invulnerability(Timer::from_seconds(5.0, TimerMode::Once)));
+        .insert(Invulnerability(Timer::from_seconds(3.0, TimerMode::Once)));
 }
 
 fn on_death(
@@ -248,6 +263,49 @@ fn make_game_camera(mut commands: Commands) {
     ));
 }
 
+fn animate_player(
+    player: Option<Single<(&mut Sprite, Option<&Invulnerability>), PlayerFilter>>,
+    time: Res<Time>,
+    player_assets: Res<PlayerAssets>,
+    mut animation_timer: Local<Option<Timer>>,
+    mut inverted: Local<bool>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    let Some((mut sprite, invuln)) = player.map(Single::into_inner) else {
+        return;
+    };
+
+    let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32;
+    let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32;
+
+    let direction = up - down;
+
+    let atlas: &mut TextureAtlas = sprite.texture_atlas.as_mut().unwrap();
+
+    atlas.index = match direction {
+        1 => 0,
+        0 => 0,
+        -1 => 1,
+        _ => unreachable!(),
+    };
+
+    if invuln.is_some() {
+        let mut animation_timer =
+            animation_timer.get_or_insert(Timer::from_seconds(0.05, TimerMode::Repeating));
+
+        animation_timer.tick(time.delta());
+
+        if animation_timer.just_finished() {
+            animation_timer.reset();
+
+            *inverted = !*inverted;
+            // if inverted: +2 or +3 depending on how big the atlas is
+            atlas.index += *inverted as usize * N_SHIP_TEXTURES;
+            dbg!(atlas.index);
+        }
+    }
+}
+
 #[derive(Component, Deref)]
 struct Invulnerability(Timer);
 
@@ -288,8 +346,12 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     commands.spawn(Player {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
-            image: player_assets.alive.clone(),
+            image: player_assets.alive_sheet.clone(),
             anchor: bevy::sprite::Anchor::Custom(Vec2::from((0.1, -0.05))),
+            texture_atlas: Some(TextureAtlas {
+                layout: player_assets.atlas_handle.clone(),
+                index: 0,
+            }),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
@@ -351,12 +413,6 @@ fn do_movement(
 
     let dy = up + -down;
     let dx = right + -left;
-
-    if down > 0.0 {
-        sprite.image = asset_server.load("Xcom_hud/Playerrocket2.png");
-    } else {
-        sprite.image = asset_server.load("Xcom_hud/Playerrocket1.png");
-    }
 
     let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 6.5;
 
