@@ -76,6 +76,7 @@ fn circular_aimed_emitter(
         bullet.transform.translation += trans.translation;
 
         if emitter.timer.finished() {
+            println!("finished???");
             emitter.timer.reset();
 
             let ang = TAU / circ.count as f32;
@@ -83,15 +84,16 @@ fn circular_aimed_emitter(
                 let mut bullet = bullet.clone();
                 let dir = Vec2::from_angle(ang * i as f32);
                 bullet.transform.translation += (dir * circ.offset).extend(0.0);
+                
                 let mut commands = commands.spawn(bullet);
 
                 if let Some(normal) = spawner.normal {
+                    println!("bruh");
                     let velocity = dir.rotate(normal.velocity);
                     commands.add_bullet(NormalBullet { velocity });
                 }
-                if let Some(rotation) = spawner.rotation {
-                    let origin = rotation.origin + trans.translation.xy();
-                    commands.add_bullet(RotatingBullet { origin, ..rotation });
+                if let Some(homing) = spawner.homing {
+                    commands.add_bullet(homing);
                 }
             }
         }
@@ -127,6 +129,17 @@ pub fn spawn_enemy(mut commands: Commands, asset_server: Res<AssetServer>) {
                             },
                             ..Default::default()
                         },
+                        normal: Some(NormalBullet {
+                            velocity: Vec2::new(5.0, 0.0),
+                        }),
+                        rotation: Some(RotatingBullet {
+                            origin: Vec2::ZERO,
+                            rotation_speed: TAU / 8.0,
+                        }),
+                        homing: Some(HomingBullet {
+                            rotation_speed: TAU / 8.0,
+                            seeking_time: 5.0,
+                        }),
                         ..Default::default()
                     },
                 })
