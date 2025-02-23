@@ -178,7 +178,10 @@ pub fn config_loadout(
                 }
             }
             Tech::EngineT1 => **speed *= 2.0,
-            Tech::EngineT2 => {**speed *= 4.0; damage_multiplier += 0.5;}
+            Tech::EngineT2 => {
+                **speed *= 4.0;
+                damage_multiplier += 0.5;
+            }
             Tech::MachineGunT2 => {
                 weapon_vec(alt, make_machinegun(assets));
                 weapon_vec(alt, make_machinegun(assets));

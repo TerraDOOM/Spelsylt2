@@ -27,6 +27,7 @@ fn main() {
         .add_plugins((xcom::xcom_plugin, touhou::touhou_plugin))
         .init_state::<GameState>()
         .add_systems(Startup, (global_setup, create_camera))
+        .add_systems(PostStartup, enter_xcom)
         .add_systems(OnExit(GameState::Touhou), create_camera)
         .add_systems(OnEnter(GameState::Touhou), destroy_camera)
         .add_systems(
