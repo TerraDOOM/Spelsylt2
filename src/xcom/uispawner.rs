@@ -133,8 +133,8 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
             //Top 30% of the screen for found research and icons
             parent
                 .spawn(Node {
-                    width: Val::Percent(40.0),
-                    height: Val::Percent(30.0),
+                    width: Val::Percent(30.0),
+                    height: Val::Percent(100.0),
                     top: Val::Vh(0.0),
                     flex_direction: FlexDirection::Column,
                     ..default_button_node()
@@ -151,6 +151,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     flex_direction: FlexDirection::Column,
                     align_self: AlignSelf::Stretch,
                     height: Val::Percent(25.),
+                    width: Val::Percent(75.),
                     top: Val::Percent(8.),
                     ..default()
                 })
@@ -170,27 +171,30 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     top: Val::Percent(30.0),
                     flex_direction: FlexDirection::Column,
                     align_self: AlignSelf::Stretch,
-                    height: Val::Percent(70.),
-                    left: -Val::Percent(20.),
+                    height: Val::Percent(60.),
+                    right: Val::Percent(5.),
                     width: Val::Percent(60.0),
                     overflow: Overflow::scroll_y(),
                     ..default()
                 })
                 .with_children(|option_box| {
-                    //Make the research dynamic? TODO
-
-                    /*                    let mut make_science_button = |name: &'static str, id, science_select| {
-                        let height = Val::Px(80.0);
-
-                            option_box,
-                            name,
-                            id,
-                            &*context,
-                            Val::Percent(100.0),
-                            height,
-                            science_select,
-                        );
-                    };*/
+                    option_box
+                        .spawn(Node {
+                            //Scientist text
+                            flex_direction: FlexDirection::Column,
+                            align_self: AlignSelf::Stretch,
+                            ..default()
+                        })
+                        .with_child((
+                            Text::new("Scientist"),
+                            ScientistDisplay,
+                            TextFont {
+                                font: context.assets.font.clone(),
+                                font_size: 33.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.7, 0.7, 0.9)),
+                        ));
 
                     for potential_research in &context.possible_research {
                         make_science_button(option_box, potential_research, context);
@@ -491,46 +495,106 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     ImageNode::new(context.assets.loadout.clone()),
                 ))
                 .with_children(|ship_box| {
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.placeholder.clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(0.0),
-                        Slot::Front,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.button_green.clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(32.0),
-                        Slot::Core1,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::MagicBullet].clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(64.0),
-                        Slot::Engine,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::MachineGun].clone(),
-                        context,
-                        Val::Px(-96.0),
-                        Val::Px(-32.0),
-                        Slot::LeftWing1,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::Rocket].clone(),
-                        context,
-                        Val::Px(96.0),
-                        Val::Px(-96.0),
-                        Slot::RightWing1,
-                    );
+                    //An if only for the assets. I wanna die..
+                    if let Some(tech) = context.loadout[&Slot::Front] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(0.0),
+                            Slot::Front,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(0.0),
+                            Slot::Front,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::Core1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(32.0),
+                            Slot::Core1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(32.0),
+                            Slot::Core1,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::Engine] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(64.0),
+                            Slot::Engine,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(64.0),
+                            Slot::Engine,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::LeftWing1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(-96.0),
+                            Val::Px(-32.0),
+                            Slot::LeftWing1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(-96.0),
+                            Val::Px(-32.0),
+                            Slot::LeftWing1,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::RightWing1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(96.0),
+                            Val::Px(-96.0),
+                            Slot::RightWing1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(96.0),
+                            Val::Px(-96.0),
+                            Slot::RightWing1,
+                        );
+                    }
                 });
             //Equipment board
             parent
@@ -572,10 +636,11 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         },
                     ));*/
 
-                    make_equipment(option_box, context, Equipment(Tech::HeavyBody));
-                    make_equipment(option_box, context, Equipment(Tech::MagicBullet));
-                    make_equipment(option_box, context, Equipment(Tech::MachineGun));
-                    make_equipment(option_box, context, Equipment(Tech::Rocket));
+                    for research in context.finished_research.clone() {
+                        if research.equipable {
+                            make_equipment(option_box, context, Equipment(research.id));
+                        }
+                    }
                 });
             parent
                 .spawn(
@@ -640,10 +705,10 @@ fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &
                 width: Val::Px(64.0),
                 height: Val::Px(64.0),
                 margin: UiRect {
-                    left: Val::Px(8.0),
-                    right: Val::Px(8.0),
-                    top: Val::Px(8.0),
-                    bottom: Val::Px(8.0),
+                    left: Val::Px(4.0),
+                    right: Val::Px(4.0),
+                    top: Val::Px(4.0),
+                    bottom: Val::Px(4.0),
                 },
                 ..default_button_node()
             },

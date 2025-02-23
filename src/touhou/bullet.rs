@@ -547,10 +547,10 @@ fn move_stutter_bullets(
 }
 
 fn move_wave_bullets(
-    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform, &mut NormalBullet)>,
 ) {
-    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        velocity.velocity =
+    for (bullet, mut velocity, lifetime, mut trans, mut normal) in &mut bullet_query {
+        normal.velocity =
             bullet.true_velocity * ((lifetime.0.elapsed_secs() * bullet.sine_mod).sin() + 1.0);
     }
 }
@@ -590,6 +590,12 @@ impl AsBulletKind for HomingBullet {
 impl AsBulletKind for StutterBullet {
     fn as_bullet_type(self) -> BulletType {
         BulletType::Stutter(self)
+    }
+}
+
+impl AsBulletKind for WaveBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Wave(self)
     }
 }
 
