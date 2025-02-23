@@ -104,6 +104,7 @@ pub fn touhou_plugin(app: &mut App) {
         bevy_flicker::FlickerPlugin,
     ))
     .init_state::<MissionState>()
+    .insert_resource(ShowGizmos { enabled: false })
     .add_systems(Startup, (load_player_assets, create_gameplay_rect))
     .add_systems(
         OnEnter(GameState::Touhou),
