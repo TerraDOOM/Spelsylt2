@@ -535,7 +535,7 @@ fn despawn_bullets(
     bullet_query: Query<(Entity, &Transform), EnemyBullets>,
 ) {
     for (entity, transform) in &bullet_query {
-        if !Rect::new(-1000.0, -1000.0, 1000.0, 1000.0).contains(transform.translation.xy()) {
+        if !Rect::new(-1500.0, -1500.0, 1500.0, 1500.0).contains(transform.translation.xy()) {
             commands.entity(entity).despawn()
         }
     }
