@@ -1,6 +1,8 @@
-use bevy::{color::palettes::css::YELLOW, ecs::query::QueryFilter, render::camera::ScalingMode};
+use bevy::{ecs::query::QueryFilter, render::camera::ScalingMode};
 
 use crate::prelude::*;
+
+use bevy_flicker;
 
 mod bullet;
 mod enemy;
@@ -88,29 +90,34 @@ pub fn touhou_plugin(app: &mut App) {
             .run_if(in_state(GameState::Touhou).and(in_state(MissionState::Ongoing)))
     };
 
-    app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
-        .init_state::<MissionState>()
-        .add_systems(Startup, (load_player_assets, create_gameplay_rect))
-        .add_systems(
-            OnEnter(GameState::Touhou),
-            (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
-        )
-        .add_systems(
-            FixedUpdate,
-            (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
-        )
-        .add_systems(
-            FixedPostUpdate,
-            (on_death.run_if(player_dead), on_damage)
-                .chain()
-                .after(bullet::player_hits),
-        )
-        .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
-        // set them all to only run if gamestate is touhou
-        .configure_sets(FixedUpdate, touhou_gameplay_pred())
-        .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
-        .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
-        .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+    app.add_plugins((
+        bullet::bullet_plugin,
+        enemy::enemy_plugin,
+        bevy_flicker::FlickerPlugin,
+    ))
+    .init_state::<MissionState>()
+    .add_systems(Startup, (load_player_assets, create_gameplay_rect))
+    .add_systems(
+        OnEnter(GameState::Touhou),
+        (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
+    )
+    .add_systems(
+        FixedUpdate,
+        (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
+    )
+    .add_systems(
+        FixedPostUpdate,
+        (on_death.run_if(player_dead), on_damage)
+            .chain()
+            .after(bullet::player_hits),
+    )
+    .add_systems(Update, flicker_player)
+    .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
+    // set them all to only run if gamestate is touhou
+    .configure_sets(FixedUpdate, touhou_gameplay_pred())
+    .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
+    .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
+    .add_systems(OnExit(GameState::Touhou), nuke_touhou);
 }
 
 fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
@@ -150,8 +157,6 @@ fn on_damage(
         return;
     };
 
-    sprite.color = Color::srgba(1.0, 1.0, 0.0, 0.8);
-
     commands
         .entity(ent)
         .insert(Invulnerability(Timer::from_seconds(5.0, TimerMode::Once)));
@@ -170,16 +175,15 @@ fn on_death(
 fn update_invulnerability(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, Option<&mut Sprite>, &mut Invulnerability)>,
+    mut query: Query<(Entity, &mut Invulnerability)>,
 ) {
-    for (ent, sprite, mut timer) in &mut query {
+    for (ent, mut timer) in &mut query {
         timer.0.tick(time.delta());
 
         if timer.0.finished() {
-            if let Some(mut sprite) = sprite {
-                sprite.color = Color::srgba(0.0, 0.0, 0.0, 0.0);
-            }
-            commands.entity(ent).remove::<Invulnerability>();
+            commands
+                .entity(ent)
+                .remove::<(Invulnerability, bevy_flicker::components::RepeatingFlicker)>();
         }
     }
 }
@@ -250,6 +254,25 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         lives: Life(3),
         ..Default::default()
     });
+}
+
+fn flicker_player(
+    mut commands: Commands,
+    player: Option<Single<Entity, (PlayerFilter, Added<Invulnerability>)>>,
+) {
+    use bevy_flicker::prelude::*;
+
+    let Some(ent) = player.map(|x| x.into_inner()) else {
+        return;
+    };
+    commands.entity(ent).insert(
+        RepeatingFlicker::builder()
+            .with_color(LinearRgba::new(0.0, 0.0, 0.0, 0.7).into())
+            .with_flicker_time_length(0.05)
+            .with_time_between_flickers(0.05)
+            .with_time_between_pulses(0.0)
+            .build(),
+    );
 }
 
 fn draw_gizmos(
