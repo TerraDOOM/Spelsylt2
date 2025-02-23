@@ -29,11 +29,14 @@ pub fn bullet_plugin(app: &mut App) {
             (
                 check_enemy_bullets,
                 check_bullet_bullet,
-                (move_normal_bullets,
-                move_rotating_bullets,
-                move_homing_bullets,
-                move_wave_bullets,
-                move_stutter_bullets).chain(),
+                (
+                    move_normal_bullets,
+                    move_rotating_bullets,
+                    move_homing_bullets,
+                    move_wave_bullets,
+                    move_stutter_bullets,
+                )
+                    .chain(),
                 despawn_bullets,
                 fire_weapons,
                 tick_bullets,
@@ -46,7 +49,7 @@ pub fn bullet_plugin(app: &mut App) {
         )
         .add_systems(
             FixedPostUpdate,
-            (player_hits, bullet_bullet_hit).run_if(in_state(GameState::Touhou)),
+            (process_player_hits, bullet_bullet_hit).run_if(in_state(GameState::Touhou)),
         )
         .add_systems(Startup, (add_dead));
 }
@@ -194,7 +197,13 @@ fn fire_weapons(
         weapon.timer.tick(time.delta());
 
         if weapon.timer.just_finished() {
-            weapon.spawn_bullet(&mut commands, pos - Vec2 { x: 0.0, y: (((weapon_idx - 1) * 50) - (25 * (weapon_count - 1))) as f32 })
+            weapon.spawn_bullet(
+                &mut commands,
+                pos - Vec2 {
+                    x: 0.0,
+                    y: (((weapon_idx - 1) * 50) - (25 * (weapon_count - 1))) as f32,
+                },
+            )
         }
     }
 }
@@ -283,17 +292,25 @@ struct EnemyHit {
     enemy: Entity,
 }
 
-pub fn player_hits(
+pub fn process_player_hits(
     mut commands: Commands,
     mut hits: EventReader<PlayerHit>,
-    player: PlayerQ<&mut Sprite>,
-    asset_server: Res<AssetServer>,
+    player: Option<PlayerQ<(&mut Life, Option<&Invulnerability>)>>,
 ) {
-    let mut sprite = player.into_inner();
+    let Some((mut life, immortal)) = player.map(|p| p.into_inner()) else {
+        return;
+    };
 
+    let mut life_lost = false;
     for PlayerHit(ent) in hits.read() {
-        sprite.image = asset_server.load("dead.png");
         commands.entity(*ent).despawn();
+
+        if life_lost || immortal.is_some() {
+            continue;
+        }
+
+        life.0 = life.0.saturating_sub(1);
+        life_lost = true;
     }
 }
 
@@ -403,25 +420,43 @@ fn move_rotating_bullets(
 
 fn move_homing_bullets(
     time: Res<Time>,
-    mut bullet_query: Query<(&HomingBullet, &mut NormalBullet, &mut Velocity, &Lifetime, &mut Transform), (With<BulletMarker>, Without<PlayerMarker>)>,
+    mut bullet_query: Query<
+        (
+            &HomingBullet,
+            &mut NormalBullet,
+            &mut Velocity,
+            &Lifetime,
+            &mut Transform,
+        ),
+        (With<BulletMarker>, Without<PlayerMarker>),
+    >,
     player: Single<&Transform, With<PlayerMarker>>,
     mut gizmos: Gizmos,
 ) {
     let playerpos = player.into_inner();
 
     for (bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        if lifetime.0.elapsed_secs() <= bullet.seeking_time && normal.velocity.length().abs() >= 0.01 {
-        let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize() * normal.velocity.length();
-        let rotation = bullet.rotation_speed * time.delta_secs();
-        gizmos.arrow_2d(trans.translation.xy(), trans.translation.xy() + angle, BLUE);
+        if lifetime.0.elapsed_secs() <= bullet.seeking_time
+            && normal.velocity.length().abs() >= 0.01
+        {
+            let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize()
+                * normal.velocity.length();
 
-        normal.velocity = normal.velocity.rotate_towards(angle, rotation);
+            let rotation = bullet.rotation_speed * time.delta_secs();
+            gizmos.arrow_2d(trans.translation.xy(), trans.translation.xy() + angle, BLUE);
+
+            normal.velocity = normal.velocity.rotate_towards(angle, rotation);
         }
     }
 }
 
 fn move_stutter_bullets(
-    mut bullet_query: Query<(&mut StutterBullet, &mut NormalBullet, &Lifetime, &mut Transform)>,
+    mut bullet_query: Query<(
+        &mut StutterBullet,
+        &mut NormalBullet,
+        &Lifetime,
+        &mut Transform,
+    )>,
 ) {
     for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
         if dbg!(lifetime.0.elapsed_secs()) < bullet.wait_time {
@@ -437,7 +472,8 @@ fn move_wave_bullets(
     mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
 ) {
     for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        velocity.velocity = bullet.true_velocity * ((lifetime.0.elapsed_secs()*bullet.sine_mod).sin() + 1.0);
+        velocity.velocity =
+            bullet.true_velocity * ((lifetime.0.elapsed_secs() * bullet.sine_mod).sin() + 1.0);
     }
 }
 

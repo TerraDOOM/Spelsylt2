@@ -84,7 +84,7 @@ fn circular_aimed_emitter(
                 let mut bullet = bullet.clone();
                 let dir = Vec2::from_angle(ang * i as f32);
                 bullet.transform.translation += (dir * circ.offset).extend(0.0);
-                
+
                 let mut commands = commands.spawn(bullet);
 
                 if let Some(normal) = spawner.normal {

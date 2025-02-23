@@ -109,7 +109,7 @@ pub fn touhou_plugin(app: &mut App) {
         FixedPostUpdate,
         (on_death.run_if(player_dead), on_damage)
             .chain()
-            .after(bullet::player_hits),
+            .after(bullet::process_player_hits),
     )
     .add_systems(Update, flicker_player)
     .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
@@ -146,7 +146,7 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
-    life.is_some() && life.unwrap().0 == 0
+    life.is_some_and(|life| life.0 == 0)
 }
 
 fn on_damage(
