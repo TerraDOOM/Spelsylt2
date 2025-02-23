@@ -440,7 +440,7 @@ fn spawn_mission(
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=200 => {
+            0..=400 => {
                 if (context
                     .finished_missions
                     .iter()
