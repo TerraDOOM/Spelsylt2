@@ -35,6 +35,10 @@ pub fn xcom_plugin(app: &mut App) {
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         )
         .add_systems(
+            PostUpdate,
+            science_changed.run_if(in_state(GameState::Xcom)),
+        )
+        .add_systems(
             Update,
             (unequip_loadout, equip_loadout)
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
@@ -52,7 +56,8 @@ pub fn xcom_plugin(app: &mut App) {
         .add_systems(OnEnter(touhou::MissionState::Fail), failed_mission)
         .add_systems(OnEnter(touhou::MissionState::Success), suceeded_mission)
         .add_event::<XcomTick>()
-        .add_event::<MissionCreated>();
+        .add_event::<MissionCreated>()
+        .add_event::<ScienceChanged>();
 }
 
 #[derive(Component)]
@@ -68,6 +73,9 @@ pub struct NoticeScreen;
 
 #[derive(Component)]
 pub struct CurrentResearch;
+
+#[derive(Component)]
+pub struct ScientistDisplay;
 
 #[derive(Component, Clone)]
 pub struct Equipment(pub Tech);
@@ -102,7 +110,8 @@ pub fn suceeded_mission(
 
 pub fn on_science(
     mut science_query: Query<&mut Node, With<ScienceScreen>>,
-    mut current_research_text: Query<&mut Text, With<CurrentResearch>>,
+    mut current_research_text: Query<&mut Text, (With<CurrentResearch>, Without<ScientistDisplay>)>,
+    mut scientist_text: Query<&mut Text, (With<ScientistDisplay>, Without<CurrentResearch>)>,
     context: ResMut<XcomState>,
 ) {
     for mut science_node in &mut science_query {
@@ -112,12 +121,18 @@ pub fn on_science(
     for mut text in &mut current_research_text {
         if let Some(selected_research) = &context.selected_research {
             **text = format![
-                "Currently researching: \n{}",
-                selected_research.name.clone()
+                "Currently researching: \n{}\n{}/{}",
+                selected_research.name.clone(),
+                selected_research.progress,
+                selected_research.cost,
             ];
         } else {
-            **text = "Not researching anything".to_string();
+            **text = "Researching nothin".to_string();
         }
+    }
+
+    for mut text in &mut scientist_text {
+        **text = format!["Scientist: {}", context.inventory[&Scientists].amount];
     }
 }
 
@@ -164,7 +179,6 @@ pub fn off_notice(mut notice_query: Query<&mut Node, With<NoticeScreen>>) {
 }
 
 pub fn on_mission(mut mission_query: Query<&mut Node, With<MissionScreen>>) {
-    println!("TODO make mission parameters fit");
     for mut mission_node in &mut mission_query {
         mission_node.display = Display::Flex;
     }
@@ -309,16 +323,24 @@ fn button_system(
 
                     ButtonPath::StartMission => {
                         println!("Starting a Mission!");
+                        let mut loadout = vec![];
+
+                        for (key, value) in &context.loadout {
+                            if let Some(value) = value {
+                                loadout.push(value.clone());
+                            }
+                        }
+
                         *mission_params = MissionParams {
-                            loadout: vec![],
+                            loadout,
                             enemy: Enemies::RedGirl,
                             map: Map::Day,
                         };
                         next_scene.set(GameState::Touhou);
                     }
 
+                    //Starting research
                     ButtonPath::StartResearch => {
-                        println!("Changing research TODO");
                         if let Some(tech) = potential_tech {
                             if let Some(i) = context
                                 .possible_research
@@ -381,33 +403,86 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.insert_resource(XcomState {
         time: 371520,
-        finished_research: vec![Research {
-            id: Tech::HeavyBody,
-            name: "Normal jetplane".to_string(),
-            description: "A normal fucking plane, kinda shit ngl".to_string(),
-            cost: 50,
-            prerequisites: vec![],
-            progress: 50,
-        }],
-        possible_research: vec![Research {
-            id: Tech::HeavyBody,
-            name: "Heavy Body".to_string(),
-            description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
-                .to_string(),
-            cost: 20 * 7200,
-            prerequisites: vec![],
-            progress: 0,
-        }],
+        finished_research: vec![
+            Research {
+                id: Tech::MachineGun,
+                equipable: true,
+                name: "Normal jetplane".to_string(),
+                description: "A normal fucking plane, kinda shit ngl".to_string(),
+                cost: 50,
+                prerequisites: vec![],
+                progress: 50,
+            },
+            Research {
+                id: Tech::AmmoStockpile,
+                equipable: true,
+                name: "Normal jetplane".to_string(),
+                description: "A normal fucking plane, kinda shit ngl".to_string(),
+                cost: 50,
+                prerequisites: vec![],
+                progress: 50,
+            },
+            Research {
+                id: Tech::Rocket,
+                equipable: true,
+                name: "Rocket".to_string(),
+                description: "Alt RocketFire".to_string(),
+                cost: 50,
+                prerequisites: vec![],
+                progress: 50,
+            },
+        ],
+        possible_research: vec![
+            Research {
+                id: Tech::EngineT1,
+                equipable: true,
+                name: "Magic fuel".to_string(),
+                description:
+                    "Using mana as a combustible mix around 10 parts pixie dust 90 parts gasoline"
+                        .to_string(),
+                cost: 20 * 3600,
+                prerequisites: vec![],
+                progress: 0,
+            },
+            Research {
+                id: Tech::HeavyBody,
+                equipable: false,
+                name: "Heavy Body".to_string(),
+                description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
+                    .to_string(),
+                cost: 20 * 7200,
+                prerequisites: vec![],
+                progress: 0,
+            },
+            Research {
+                id: Tech::MagicBullet,
+                equipable: true,
+                name: "magic Bullet".to_string(),
+                description: "A magic bullet that negates incoming bullets".to_string(),
+                cost: 20,
+                prerequisites: vec![],
+                progress: 0,
+            },
+            Research {
+                id: Tech::DeterganceT1,
+                equipable: false,
+                name: "Just be chill".to_string(),
+                description: "Makes incasion less likely, TODO".to_string(),
+                cost: 20 * 7200,
+                prerequisites: vec![],
+                progress: 0,
+            },
+        ],
         active_missions: vec![],
         finished_missions: vec![],
         selected_research: None,
         selected_production: None,
         loadout: HashMap::from([
-            (Slot::Front, Some(Tech::Rocket)),
-            (Slot::Engine, Some(Tech::MachineGun)),
+            (Slot::Front, Some(Tech::AmmoStockpile)),
+            (Slot::Engine, None),
             (Slot::Core1, None),
-            (Slot::LeftWing1, Some(Tech::MagicBullet)),
-            (Slot::RightWing1, None),
+            (Slot::LeftWing1, Some(Tech::MachineGun)),
+            (Slot::RightWing1, Some(Tech::MachineGun)),
         ]),
         timer: Timer::new(Duration::from_secs_f32(0.8), TimerMode::Repeating),
         speed: 5,
@@ -655,6 +730,26 @@ fn on_xcom(
     spawn_notice_hud(&mut commands, &context);
 }
 
+fn science_changed(
+    mut commands: Commands,
+    mut rdr: EventReader<ScienceChanged>,
+    context: ResMut<XcomState>,
+    science_screen: Query<Entity, (With<ScienceScreen>, Without<MissionScreen>)>,
+    mission_screen: Query<Entity, (With<MissionScreen>, Without<ScienceScreen>)>,
+) {
+    for _ in rdr.read() {
+        for obj in &science_screen {
+            commands.entity(obj).despawn_recursive();
+        }
+        for obj in &mission_screen {
+            commands.entity(obj).despawn_recursive();
+        }
+
+        spawn_science_hud(&mut commands, &context);
+        spawn_mission_hud(&mut commands, &context);
+    }
+}
+
 fn off_xcom(
     mut commands: Commands,
     xcom_objects: Query<Entity, With<XcomObject>>,
@@ -692,6 +787,10 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
                 Tech::MachineGun,
                 asset_server.load("Xcom_hud/Machingun.png"),
             ),
+            (Tech::AmmoStockpile, asset_server.load("Xcom_hud/Ammo.png")),
+            (Tech::DeterganceT1, asset_server.load("mascot.png")),
+            (Tech::DeterganceT2, asset_server.load("mascot.png")),
+            (Tech::EngineT1, asset_server.load("mascot.png")),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
@@ -799,34 +898,49 @@ fn create_mission_notice(
     }
 }
 
+#[derive(Event)]
+struct ScienceChanged;
+
 fn make_techs(
     mut ticks: EventReader<XcomTick>,
+    mut commands: Commands,
     mut context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
+
+    mut change_writer: EventWriter<ScienceChanged>,
 ) {
     for _ in ticks.read() {
         let scientists: usize = context.inventory[&Scientists].amount;
         let engineers: usize = context.inventory[&Engineer].amount;
 
-        let XcomState {
-            selected_research,
-            finished_research,
-            notice_title,
-            notice_text,
-            ..
-        } = &mut *context;
-        if let Some(selected_research_deref) = selected_research {
-            selected_research_deref.progress += scientists.clone();
-            if (selected_research_deref.progress > selected_research_deref.cost) {
-                finished_research.push(selected_research_deref.clone());
-                //possible_research. (selected_research.clone()); TODO remove old tech
-                *(notice_title) = "Finished Research".to_string();
-                *notice_text = finished_research_text(selected_research_deref.id);
-                *selected_research = None;
-                next_state.set(Focus::Notice);
+        let mut finished = false;
+        {
+            let XcomState {
+                selected_research,
+                finished_research,
+                notice_title,
+                notice_text,
+                ..
+            } = &mut *context;
+            if let Some(selected_research_deref) = selected_research {
+                selected_research_deref.progress += scientists.clone();
+                if (selected_research_deref.progress > selected_research_deref.cost) {
+                    //Finished research
+                    finished = true;
+
+                    finished_research.push(selected_research_deref.clone());
+                    *(notice_title) = "Finished Research".to_string();
+                    *notice_text = selected_research_deref.description.clone();
+                    *selected_research = None;
+
+                    next_state.set(Focus::Notice);
+                }
             }
         }
-        if let Some(selected_production) = &mut context.selected_production {}
+        if finished {
+            change_writer.send(ScienceChanged);
+        }
+        //        if let Some(selected_production) = &mut context.selected_production {}
     }
 }
 

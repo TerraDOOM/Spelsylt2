@@ -23,6 +23,7 @@ pub struct Research {
     pub cost: usize,
     pub prerequisites: Vec<String>,
     pub progress: usize,
+    pub equipable: bool,
 }
 
 #[derive(Resource)]
@@ -75,9 +76,10 @@ pub enum Tech {
     MagicBullet,
     MachineGun,
     AmmoStockpile,
-    EngineT2,
+    EngineT1,
     Rocket,
-    FinalMission,
+    DeterganceT1,
+    DeterganceT2,
 }
 
 #[derive(Resource)]
