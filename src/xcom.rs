@@ -11,14 +11,19 @@ use uispawner::*;
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup)
         .add_systems(OnEnter(GameState::Xcom), on_xcom)
-        .add_systems(PreUpdate, update_clock)
+        .add_systems(PreUpdate, update_clock.run_if(in_state(GameState::Xcom)))
         .add_systems(
             Update,
             (button_system, update_scroll_position).run_if(in_state(GameState::Xcom)),
         )
         .add_systems(
             Update,
-            (move_enemies, spawn_mission)
+            (
+                move_enemies,
+                spawn_mission,
+                create_mission_notice.after(spawn_mission),
+                make_techs,
+            )
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         )
         .add_systems(
@@ -298,7 +303,8 @@ fn button_system(
                         println!("Starting a Mission!");
                         *mission_params = MissionParams {
                             loadout: vec![],
-                            enemy: "First enemy".to_string(),
+                            enemy: Enemies::RedGirl,
+                            map: Map::Day,
                         };
                         next_scene.set(GameState::Touhou);
                     }
@@ -361,7 +367,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let assets = load_xcom_assets(&asset_server);
     commands.insert_resource(MissionParams {
         loadout: vec![],
-        enemy: "".to_string(),
+        enemy: Enemies::RedGirl,
+        map: Map::Day,
     });
 
     commands.insert_resource(XcomState {
@@ -431,22 +438,15 @@ fn spawn_mission(
         let x = rng.random_range(120..800) as f32; //The x spawn range
         let y = rng.random_range(120..500) as f32; //The y spawn range
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
-
         let mission = match seed {
             //active spawn of "next" enemy
             0..=100 => {
-                if context
+                if (context
                     .finished_missions
                     .iter()
                     .find(|n| !(n.enemy == Enemies::MoonGirl && n.status == MissionStatus::Won))
                     .is_some()
-                {
-                    return;
-                } else if context
-                    .finished_missions
-                    .iter()
-                    .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
-                    .is_some()
+                    && context.inventory[&Scientists].amount > 10)
                 {
                     Mission {
                         id: "moon_girl_active".to_string(),
@@ -464,8 +464,9 @@ fn spawn_mission(
                 } else if context
                     .finished_missions
                     .iter()
-                    .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
+                    .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
                     .is_some()
+                    || context.inventory[&Scientists].amount <= 10
                 {
                     Mission {
                         id: "Tentacle_active".to_string(),
@@ -483,7 +484,7 @@ fn spawn_mission(
                 } else if context
                     .finished_missions
                     .iter()
-                    .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
+                    .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
                     .is_some()
                 {
                     Mission {
@@ -499,7 +500,13 @@ fn spawn_mission(
                         phase,
                         status: MissionStatus::Pending,
                     }
-                } else {
+                } else if context
+                    .finished_missions
+                    .iter()
+                    .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
+                    .is_some()
+                    || context.inventory[&Scientists].amount <= 10
+                {
                     Mission {
                         id: "RedGirl_active".to_string(),
                         name: "Magical girl spotted".to_string(),
@@ -513,6 +520,8 @@ fn spawn_mission(
                         phase,
                         status: MissionStatus::Pending,
                     }
+                } else {
+                    return;
                 }
             }
             _ => {
@@ -815,11 +824,4 @@ pub fn finished_research_text(tech: Tech) -> String {
             "Unkown research finished".to_string()
         }
     }
-}
-
-fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
-    //Chance for invasion/mission TODO
-    //Tick research and production
-
-    //Change hudv
 }
