@@ -3,7 +3,7 @@ use std::{f32::consts::TAU, time::Duration};
 use bevy::ecs::schedule::common_conditions;
 use bullet::{
     BulletBundle, BulletCommandExt, BulletType, HomingBullet, NormalBullet, RotatingBullet,
-    StutterBullet,
+    StutterBullet, WaveBullet,
 };
 
 use super::*;
@@ -56,6 +56,7 @@ struct BulletSpawner {
     rotation: Option<RotatingBullet>,
     stutter: Option<StutterBullet>,
     homing: Option<HomingBullet>,
+    wave: Option<WaveBullet>,
 }
 
 fn circular_aimed_emitter(
@@ -67,7 +68,9 @@ fn circular_aimed_emitter(
         &BulletSpawner,
         &mut CircularAimedEmitter,
     )>,
+    player: Single<&Transform, With<PlayerMarker>>,
 ) {
+    let playerpos = player.into_inner();
     for (trans, mut emitter, spawner, circ) in &mut query {
         emitter.timer.tick(time.delta());
 
@@ -83,15 +86,24 @@ fn circular_aimed_emitter(
                 let mut bullet = bullet.clone();
                 let dir = Vec2::from_angle(ang * i as f32);
                 bullet.transform.translation += (dir * circ.offset).extend(0.0);
+                let player_dir = playerpos.translation.xy() - bullet.transform.translation.xy();
+
                 let mut commands = commands.spawn(bullet);
 
                 if let Some(normal) = spawner.normal {
                     let velocity = dir.rotate(normal.velocity);
                     commands.add_bullet(NormalBullet { velocity });
                 }
-                if let Some(rotation) = spawner.rotation {
-                    let origin = rotation.origin + trans.translation.xy();
-                    commands.add_bullet(RotatingBullet { origin, ..rotation });
+                if let Some(homing) = spawner.homing {
+                    commands.add_bullet(homing);
+                }
+                if let Some(stutter) = spawner.stutter {
+                    let velocity = player_dir.normalize().rotate(stutter.initial_velocity);
+                    commands.add_bullet(StutterBullet {
+                        initial_velocity: velocity,
+                        wait_time: 2.0,
+                        has_started: false,
+                    });
                 }
             }
         }
@@ -120,13 +132,33 @@ pub fn spawn_enemy(mut commands: Commands, asset_server: Res<AssetServer>) {
                     },
                     bullet_spawner: BulletSpawner {
                         bullet: BulletBundle {
-                            collider: Collider { radius: 50.0 },
+                            collider: Collider { radius: 5.0 },
                             sprite: Sprite {
                                 image: asset_server.load("bullets/bullet1.png"),
                                 ..Default::default()
                             },
                             ..Default::default()
                         },
+                        normal: Some(NormalBullet {
+                            velocity: Vec2::new(5.0, 0.0),
+                        }),
+                        rotation: Some(RotatingBullet {
+                            origin: Vec2::ZERO,
+                            rotation_speed: TAU / 8.0,
+                        }),
+                        homing: Some(HomingBullet {
+                            rotation_speed: TAU / 8.0,
+                            seeking_time: 5.0,
+                        }),
+                        stutter: Some(StutterBullet {
+                            wait_time: 2.0,
+                            initial_velocity: Vec2::new(5.0, 0.0),
+                            has_started: false,
+                        }),
+                        wave: Some(WaveBullet {
+                            sine_mod: 1.0,
+                            true_velocity: Vec2::new(5.0, 0.0),
+                        }),
                         ..Default::default()
                     },
                 })

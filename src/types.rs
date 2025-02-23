@@ -4,11 +4,12 @@ use bevy::prelude::*;
 pub struct Mission {
     pub id: String,
     pub name: String,
-    pub enemy: String,
+    pub enemy: Enemies,
     pub requirment: Vec<String>,
     pub consequences: Vec<String>,
+    pub status: MissionStatus,
     pub rewards: Vec<String>,
-    pub time_left: usize,
+    pub time_left: isize,
     pub overworld_x: f32,
     pub overworld_y: f32,
     pub phase: f32,
@@ -33,6 +34,24 @@ pub struct Resources {
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum MissionStatus {
+    Pending,
+    Lost,
+    Won,
+    Abandonend,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Enemies {
+    RedGirl,
+    Lizard,
+    Tentacle,
+    MoonGirl,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum ResourceType {
     Scientists,
     Engineer,
@@ -47,6 +66,7 @@ pub enum Tech {
     MagicBullet,
     MachineGun,
     Rocket,
+    FinalMission,
 }
 
 #[derive(Resource)]

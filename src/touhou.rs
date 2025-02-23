@@ -1,4 +1,7 @@
-use bevy::{ecs::query::QueryFilter, render::camera::ScalingMode};
+use bevy::{
+    ecs::query::QueryFilter, input::common_conditions::input_just_pressed,
+    render::camera::ScalingMode,
+};
 
 use crate::prelude::*;
 
@@ -37,6 +40,11 @@ impl Collider {
 struct Circle {
     pos: Vec2,
     radius: f32,
+}
+
+#[derive(Resource, Default)]
+struct ShowGizmos {
+    enabled: bool,
 }
 
 impl Circle {
@@ -96,6 +104,7 @@ pub fn touhou_plugin(app: &mut App) {
         bevy_flicker::FlickerPlugin,
     ))
     .init_state::<MissionState>()
+    .insert_resource(ShowGizmos { enabled: false })
     .add_systems(Startup, (load_player_assets, create_gameplay_rect))
     .add_systems(
         OnEnter(GameState::Touhou),
@@ -109,7 +118,11 @@ pub fn touhou_plugin(app: &mut App) {
         FixedPostUpdate,
         (on_death.run_if(player_dead), on_damage)
             .chain()
-            .after(bullet::player_hits),
+            .after(bullet::process_player_hits),
+    )
+    .add_systems(
+        Update,
+        toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
     )
     .add_systems(Update, flicker_player)
     .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
@@ -120,6 +133,10 @@ pub fn touhou_plugin(app: &mut App) {
     .add_systems(OnExit(GameState::Touhou), nuke_touhou);
 }
 
+fn toggle_gizmos(mut r: ResMut<ShowGizmos>) {
+    r.enabled = !r.enabled;
+}
+
 fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
     mission_status.set(MissionState::Ongoing);
 }
@@ -127,10 +144,10 @@ fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
 fn nuke_touhou(
     mut commands: Commands,
     touhou_objects: Query<Entity, With<TouhouMarker>>,
-    touhou_camera: Query<Entity, With<TouhouMarker>>,
+    touhou_camera: Query<Entity, With<TouhouCamera>>,
 ) {
     for obj in &touhou_objects {
-        commands.entity(obj).despawn_recursive();
+        commands.entity(obj).try_despawn_recursive();
     }
 
     for obj in &touhou_camera {
@@ -146,7 +163,7 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
-    life.is_some() && life.unwrap().0 == 0
+    life.is_some_and(|life| life.0 == 0)
 }
 
 fn on_damage(
@@ -247,10 +264,11 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
             image: player_assets.alive.clone(),
+            anchor: bevy::sprite::Anchor::Custom(Vec2::from((0.0, -0.1))),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
-        collider: Collider { radius: 40.0 },
+        collider: Collider { radius: 25.0 },
         lives: Life(3),
         ..Default::default()
     });
@@ -278,8 +296,12 @@ fn flicker_player(
 fn draw_gizmos(
     mut gizmos: Gizmos,
     area: Res<GameplayRect>,
+    enabled: ResMut<ShowGizmos>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
+    if enabled.enabled {
+        return;
+    }
     use bevy::color::palettes::css::RED;
 
     gizmos.rect_2d(
@@ -322,7 +344,7 @@ fn do_movement(
         sprite.image = asset_server.load("Xcom_hud/Playerrocket1.png");
     }
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 6.5;
 
     let new_pos = (trans.translation + wishdir).xy();
 
