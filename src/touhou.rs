@@ -88,6 +88,9 @@ enum TouhouSets {
     Gameplay,
 }
 
+#[derive(Component, Deref, DerefMut, Default)]
+struct Speed(f32);
+
 #[derive(Resource)]
 pub struct PlayerAssets {
     dead: Handle<Image>,
@@ -111,7 +114,13 @@ pub fn touhou_plugin(app: &mut App) {
         )
         .add_systems(
             OnEnter(GameState::Touhou),
-            (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
+            (
+                spawn_player,
+                bullet::config_loadout.after(spawn_player),
+                make_game_camera,
+                set_mission_status,
+            )
+                .in_set(TouhouSets::EnterTouhou),
         )
         .add_systems(
             FixedUpdate,
@@ -331,6 +340,7 @@ pub struct Player {
     lives: Life,
     markers: (PlayerMarker, TouhouMarker),
     ammo: Ammo,
+    speed: Speed,
 }
 
 #[derive(Component, Deref)]
@@ -371,6 +381,8 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
         collider: Collider { radius: 7.5 },
         lives: Life(3),
+        speed: Speed(6.5),
+        ammo: Ammo(1000),
         ..Default::default()
     });
 }
@@ -417,9 +429,9 @@ fn do_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
     asset_server: ResMut<AssetServer>,
-    mut player_info: Single<(&mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
+    mut player_info: Single<(&Speed, &mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
 ) {
-    let (mut trans, mut collider, mut sprite) = player_info.into_inner();
+    let (speed, mut trans, mut collider, mut sprite) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -428,7 +440,7 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 6.5;
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * **speed;
 
     let new_pos = (trans.translation + wishdir).xy();
 
