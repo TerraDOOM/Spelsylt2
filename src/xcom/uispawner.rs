@@ -8,6 +8,7 @@ use crate::xcom::*;
 pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
     commands
         .spawn((
+            XcomObject,
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
@@ -369,6 +370,7 @@ impl<'a, 'b> UiExt for Commands<'a, 'b> {
     {
         self.spawn((
             marker,
+            XcomObject,
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),

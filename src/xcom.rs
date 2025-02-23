@@ -25,7 +25,8 @@ pub fn xcom_plugin(app: &mut App) {
             Update,
             (unequip_loadout, equip_loadout)
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
-        );
+        )
+        .add_systems(OnExit(GameState::Xcom), off_xcom);
 
     app.init_state::<Focus>();
 
@@ -40,6 +41,9 @@ pub fn xcom_plugin(app: &mut App) {
 
     app.add_systems(OnEnter(Focus::Notice), on_notice);
     app.add_systems(OnExit(Focus::Notice), off_notice);
+
+    app.add_systems(OnEnter(touhou::MissionState::Fail), failed_mission);
+    app.add_systems(OnEnter(touhou::MissionState::Success), suceeded_mission);
 }
 
 #[derive(Component)]
@@ -64,6 +68,28 @@ pub struct TitleNode;
 
 #[derive(Component, Clone)]
 pub struct YappNode;
+
+pub fn failed_mission(
+    mut context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
+    mut next_scene: ResMut<NextState<GameState>>,
+) {
+    context.notice_title = "Mission Failed".to_string();
+    context.notice_text = "The battle is lost. You have lost the craft and the enemy won their mission. Lost 2 scientist in budget concerns,".to_string();
+    next_scene.set(GameState::Xcom);
+    next_state.set(Focus::Notice);
+}
+
+pub fn suceeded_mission(
+    mut context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
+    mut next_scene: ResMut<NextState<GameState>>,
+) {
+    context.notice_title = "Sucessfull mission".to_string();
+    context.notice_text = "The enemy yields. The magical loot will greatly increase our research efforts. Got 2 scientist".to_string();
+    next_scene.set(GameState::Xcom);
+    next_state.set(Focus::Notice);
+}
 
 pub fn on_science(
     mut science_query: Query<&mut Node, With<ScienceScreen>>,
@@ -454,10 +480,11 @@ fn on_xcom(
     let width = window.resolution.width();
     let height = window.resolution.height();
 
-    let background_size = Some(Vec2::new(width, height));
+    let background_size = dbg!(Some(Vec2::new(width, height)));
     let background_position = Vec2::new(0.0, 0.0);
 
     commands.spawn((
+        XcomObject,
         Sprite {
             image: context.assets.geo_map.clone(),
             custom_size: background_size,
@@ -465,7 +492,6 @@ fn on_xcom(
         },
         Transform::from_translation(background_position.extend(-1.0)),
         Background,
-        XcomObject,
     ));
 
     //    spawn_mission(&mut commands, &context, 100., 100., 0.);
@@ -486,7 +512,11 @@ fn on_xcom(
     spawn_notice_hud(&mut commands, &context);
 }
 
-fn off_xcom() {}
+fn off_xcom(mut commands: Commands, xcom_objects: Query<Entity, With<XcomObject>>) {
+    for obj in &xcom_objects {
+        commands.entity(obj).despawn_recursive();
+    }
+}
 
 fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
     XcomResources {
