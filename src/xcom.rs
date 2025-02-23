@@ -2,7 +2,7 @@ use crate::prelude::*;
 use rand::prelude::*;
 use rand::Rng;
 use std::collections::HashMap;
-use std::{f32::consts::PI, time::Duration};
+use std::time::Duration;
 use ResourceType::*;
 
 mod uispawner;
@@ -413,7 +413,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
         ]
         .into_iter()
-        .map(|r| (r.name.clone(), r))
+        .map(|r| (r.name, r))
         .collect(),
         assets,
     });
@@ -661,8 +661,8 @@ fn update(
     if context.timer.just_finished() {
         context.timer.reset();
 
-        let scientists: usize = context.inventory[&Scientists].amount.clone();
-        let engineers: usize = context.inventory[&Engineer].amount.clone();
+        let scientists: usize = context.inventory[&Scientists].amount;
+        let engineers: usize = context.inventory[&Engineer].amount;
         context.time += 30;
 
         let mut rng = rand::thread_rng();

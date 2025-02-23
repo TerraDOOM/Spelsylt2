@@ -1,8 +1,7 @@
 use std::{f32::consts::TAU, time::Duration};
 
-use bevy::ecs::schedule::common_conditions;
 use bullet::{
-    BulletBundle, BulletCommandExt, BulletType, HomingBullet, NormalBullet, RotatingBullet,
+    BulletBundle, BulletCommandExt, HomingBullet, NormalBullet, RotatingBullet,
     StutterBullet, WaveBullet,
 };
 

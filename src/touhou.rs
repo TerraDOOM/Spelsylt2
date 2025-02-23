@@ -198,7 +198,7 @@ fn update_invulnerability(
 
 fn make_game_camera(mut commands: Commands) {
     commands.spawn((
-        Camera2d::default(),
+        Camera2d,
         OrthographicProjection {
             near: -1000.0,
             far: 1000.0,

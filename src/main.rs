@@ -1,7 +1,7 @@
 #![allow(unused_mut, unused_variables, unused_parens, non_camel_case_types)]
 
 use bevy::{
-    dev_tools::{self, DevToolsPlugin},
+    dev_tools::{self},
     input::common_conditions::*,
     prelude::*,
     winit::{UpdateMode, WinitSettings},
@@ -99,7 +99,7 @@ fn destroy_bg(mut commands: Commands, bg: Single<Entity, With<MenuBG>>) {
 }
 
 fn create_camera(mut commands: Commands) {
-    commands.spawn((Camera2d::default(), GlobalCamera));
+    commands.spawn((Camera2d, GlobalCamera));
 }
 
 fn destroy_camera(mut commands: Commands, global_camera: Single<Entity, With<GlobalCamera>>) {

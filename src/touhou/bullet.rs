@@ -521,7 +521,7 @@ impl AsBulletKind for BulletType {
     }
 }
 
-impl<'a> BulletCommandExt for EntityCommands<'a> {
+impl BulletCommandExt for EntityCommands<'_> {
     fn add_bullet<T: AsBulletKind>(&mut self, kind: T) -> &mut Self {
         let kind = kind.as_bullet_type();
 
