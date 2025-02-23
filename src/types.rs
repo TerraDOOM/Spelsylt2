@@ -74,13 +74,15 @@ pub enum Tech {
     HoverMagic,
     MagicBullet,
     MachineGun,
+    AmmoStockpile,
+    EngineT2,
     Rocket,
     FinalMission,
 }
 
 #[derive(Resource)]
 pub struct MissionParams {
-    pub loadout: Vec<String>,
+    pub loadout: Vec<Tech>,
     pub enemy: Enemies,
     pub map: Map,
     //    pub mission: Mission,

@@ -440,7 +440,7 @@ fn spawn_mission(
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=100 => {
+            0..=200 => {
                 if (context
                     .finished_missions
                     .iter()
@@ -648,9 +648,17 @@ fn on_xcom(
     spawn_notice_hud(&mut commands, &context);
 }
 
-fn off_xcom(mut commands: Commands, xcom_objects: Query<Entity, With<XcomObject>>) {
+fn off_xcom(
+    mut commands: Commands,
+    xcom_objects: Query<Entity, With<XcomObject>>,
+    mut image_query: Query<&mut Node, With<MissionMarker>>,
+) {
     for obj in &xcom_objects {
         commands.entity(obj).despawn_recursive();
+    }
+
+    for mut marker_node in &mut image_query {
+        marker_node.display = Display::None;
     }
 
     //    MissionMarker TODO make mission markers disapear
