@@ -11,14 +11,19 @@ use uispawner::*;
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup)
         .add_systems(OnEnter(GameState::Xcom), on_xcom)
-        .add_systems(PreUpdate, update_clock)
+        .add_systems(PreUpdate, update_clock.run_if(in_state(GameState::Xcom)))
         .add_systems(
             Update,
             (button_system, update_scroll_position).run_if(in_state(GameState::Xcom)),
         )
         .add_systems(
             Update,
-            (move_enemies, spawn_mission, make_techs)
+            (
+                move_enemies,
+                spawn_mission,
+                create_mission_notice.after(spawn_mission),
+                make_techs,
+            )
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         )
         .add_systems(
@@ -819,11 +824,4 @@ pub fn finished_research_text(tech: Tech) -> String {
             "Unkown research finished".to_string()
         }
     }
-}
-
-fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
-    //Chance for invasion/mission TODO
-    //Tick research and production
-
-    //Change hudv
 }
