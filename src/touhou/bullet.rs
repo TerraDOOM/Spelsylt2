@@ -141,11 +141,12 @@ pub fn config_loadout(
 
     let mut ammo_multiplier = 1.0;
 
-    for (tech, alt) in loadout {
-        let weapon_vec = |alt| if alt { &mut alt_weapons } else { &mut weapons };
+    for &(tech, alt) in loadout {
+        let mut weapon_vec =
+            |alt, weapon| if alt { &mut alt_weapons } else { &mut weapons }.push(weapon);
 
         match tech {
-            Tech::MachineGun => weapon_vec(alt).push(make_machinegun(assets)),
+            Tech::MachineGun => weapon_vec(alt, make_machinegun(assets)),
             Tech::AmmoStockpile => **ammo += 1000,
             Tech::HeavyBody => {
                 ammo_multiplier += 0.5;
@@ -153,7 +154,7 @@ pub fn config_loadout(
                 collider.radius += 5.0
             }
             Tech::Rocket => {
-                weapon_vec(alt).push(make_rocketlauncher(assets));
+                weapon_vec(alt, make_rocketlauncher(assets));
             }
             Tech::MagicBullet => {
                 if alt {
@@ -162,11 +163,12 @@ pub fn config_loadout(
                     salted = true;
                 }
             }
-            Tech::EngineT2 => **speed *= 2.0,
+            Tech::EngineT1 => **speed *= 2.0,
+            _ => {}
         }
     }
 
-    **ammo = (ammo as f32 * ammo_multiplier) as u32;
+    **ammo = (**ammo as f32 * ammo_multiplier) as u32;
 
     commands.entity(ent).with_children(|player| {
         for mut weapon in weapons {
@@ -597,7 +599,13 @@ fn move_stutter_bullets(
 }
 
 fn move_wave_bullets(
-    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform, &mut NormalBullet)>,
+    mut bullet_query: Query<(
+        &WaveBullet,
+        &mut Velocity,
+        &Lifetime,
+        &mut Transform,
+        &mut NormalBullet,
+    )>,
 ) {
     for (bullet, mut velocity, lifetime, mut trans, mut normal) in &mut bullet_query {
         normal.velocity =

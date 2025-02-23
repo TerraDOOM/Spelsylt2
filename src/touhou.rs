@@ -190,7 +190,7 @@ fn nuke_touhou(
     }
 }
 
-const N_SHIP_TEXTURES: usize = 2;
+const N_SHIP_TEXTURES: usize = 3;
 
 fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let atlas =
@@ -307,8 +307,8 @@ fn animate_player(
 
     atlas.index = match direction {
         1 => 0,
-        0 => 0,
-        -1 => 1,
+        0 => 1,
+        -1 => 2,
         _ => unreachable!(),
     };
 
@@ -343,7 +343,7 @@ pub struct Player {
     speed: Speed,
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Life(usize);
 
 #[derive(Component, Deref, DerefMut, Default)]
