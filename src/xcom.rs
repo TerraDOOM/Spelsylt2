@@ -513,7 +513,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 description:
                     "Even more pixie dust in the engine seems to work. We are using 30 parts pixie dust 60 parts gasoline and 10 parts liquid hope and dreams"
                         .to_string(),
-                cost: 20,
+                cost: 30,
                 prerequisites: vec![Tech::EngineT1],
                 progress: 0,
             },
@@ -523,7 +523,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 name: "Heavy Body".to_string(),
                 description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
                     .to_string(),
-                cost: 20,
+                cost: 30,
                 prerequisites: vec![],
                 progress: 0,
             },
@@ -532,7 +532,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 equipable: true,
                 name: "magic Bullet".to_string(),
                 description: "A magic bullet that negates incoming bullets".to_string(),
-                cost: 20,
+                cost: 50,
                 prerequisites: vec![],
                 progress: 0,
             },
@@ -541,7 +541,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 equipable: true,
                 name: "Ultimate gun".to_string(),
                 description: "A magic infused gun. Loads by teleporting the bullets into the barrel".to_string(),
-                cost: 50,
+                cost: 100,
                 prerequisites: vec![Tech::MagicBullet],
                 progress: 0,
             },
@@ -550,7 +550,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 equipable: true,
                 name: "Ghost bullets".to_string(),
                 description: "A magic bullet that negates incoming bullets".to_string(),
-                cost: 30,
+                cost: 150,
                 prerequisites: vec![Tech::MagicBullet],
                 progress: 0,
             }
@@ -612,7 +612,7 @@ fn spawn_mission(
                 requirment: vec![],
                 consequences: vec![],
                 rewards: vec![],
-                time_left: 50,
+                time_left: 10,
                 overworld_x: x,
                 overworld_y: y,
                 phase,
@@ -625,7 +625,7 @@ fn spawn_mission(
                 requirment: vec![],
                 consequences: vec![],
                 rewards: vec![],
-                time_left: 20 * 7200,
+                time_left: 10,
                 overworld_x: x,
                 overworld_y: y,
                 phase,
@@ -638,7 +638,7 @@ fn spawn_mission(
                 requirment: vec![],
                 consequences: vec![],
                 rewards: vec![],
-                time_left: 20 * 7200,
+                time_left: 10,
                 overworld_x: x,
                 overworld_y: y,
                 phase,
@@ -651,7 +651,7 @@ fn spawn_mission(
                 requirment: vec![],
                 consequences: vec![],
                 rewards: vec![],
-                time_left: 20 * 7200,
+                time_left: 10,
                 overworld_x: x,
                 overworld_y: y,
                 phase,
@@ -752,9 +752,11 @@ fn move_enemies(
 
 fn on_xcom(
     mut commands: Commands,
-    context: ResMut<XcomState>,
+    mut context: ResMut<XcomState>,
     window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
     mut focus_state: ResMut<NextState<Focus>>,
+    mut first_time: Local<bool>,
+    mut next_state: ResMut<NextState<Focus>>,
 ) {
     focus_state.set(Focus::Map);
 
@@ -800,6 +802,13 @@ fn on_xcom(
 
     //SpawnNoticeHud
     spawn_notice_hud(&mut commands, &context);
+
+    if (!(*first_time)) {
+        *first_time = true;
+        context.notice_title = "Hello Commander".to_string();
+        context.notice_text = "Magical girls have started invading the nordic countries. It is up to your research their magic and launch a well equiped and elite task force. If we have atleast ten scientists we can launch a moon mission \nGood luck ".to_string();
+        next_state.set(Focus::Notice);
+    }
 }
 
 fn science_changed(
