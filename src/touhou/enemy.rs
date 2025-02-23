@@ -4,7 +4,7 @@ use std::{f32::consts::TAU, time::Duration};
 use bevy::time::Stopwatch;
 use bullet::{
     BulletBundle, BulletCommandExt, HomingBullet, NormalBullet, RotatingBullet, StutterBullet,
-    WaveBullet,
+    Target, WaveBullet,
 };
 
 use super::{bullet::DelayedBullet, *};
@@ -224,11 +224,12 @@ impl BulletSpawner {
         }
     }
 
-    pub fn homing(self, seeking_time: f32, rotation_speed: f32) -> Self {
+    pub fn homing(self, seeking_time: f32, rotation_speed: f32, target: bullet::Target) -> Self {
         Self {
             homing: Some(HomingBullet {
                 seeking_time,
                 rotation_speed,
+                target,
             }),
             ..self
         }
@@ -519,7 +520,11 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(2.0, 0.0))
-                                .homing(4.0, TAU / 8.0),
+                                .homing(
+                                    4.0,
+                                    TAU / 8.0,
+                                    Target::Player,
+                                ),
                                 active: Active(false),
                             })
                             .insert(CircularHomingEmitter {

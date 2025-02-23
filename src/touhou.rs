@@ -216,7 +216,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
             None,
         )),
-        tentacle: asset_server.load("Enemies\\babyalien.png")
+        tentacle: asset_server.load("Enemies\\babyalien.png"),
     })
 }
 
@@ -326,7 +326,6 @@ fn animate_player(
             *inverted = !*inverted;
             // if inverted: +2 or +3 depending on how big the atlas is
             atlas.index += *inverted as usize * N_SHIP_TEXTURES;
-            dbg!(atlas.index);
         }
     }
 }
