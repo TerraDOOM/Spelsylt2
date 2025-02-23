@@ -49,9 +49,6 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                 |name, id| make_button(parent, name, id, context, Val::Px(256.0), Val::Px(64.0));
 
             make_geo_button("Research", ButtonPath::ScienceMenu);
-            make_geo_button("Production", ButtonPath::ProductionMenu);
-            make_geo_button("Save", ButtonPath::MainMenu);
-            make_geo_button("Load", ButtonPath::MainMenu);
         });
 }
 

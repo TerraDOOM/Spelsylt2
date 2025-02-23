@@ -90,6 +90,7 @@ pub fn failed_mission(
     mut context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
     mut next_scene: ResMut<NextState<GameState>>,
+    mut image_query: Query<&mut Node, With<MissionMarker>>,
 ) {
     context.notice_title = "Mission Failed".to_string();
     context.notice_text = "The battle is lost. You have lost the craft and the enemy won their mission. Lost 2 scientist in budget concerns,".to_string();
@@ -100,6 +101,11 @@ pub fn failed_mission(
     } else {
         game_over();
     }
+
+    for mut marker_node in &mut image_query {
+        marker_node.display = Display::Flex;
+    }
+
     next_scene.set(GameState::Xcom);
     next_state.set(Focus::Notice);
 }
@@ -107,12 +113,19 @@ pub fn failed_mission(
 pub fn suceeded_mission(
     mut context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
+    mut commands: Commands,
     mut next_scene: ResMut<NextState<GameState>>,
+    mut image_query: Query<Entity, With<MissionMarker>>,
 ) {
     context.notice_title = "Sucessfull mission".to_string();
     context.notice_text = "The enemy yields. The magical loot will greatly increase our research efforts. Got 2 scientist".to_string();
     let scientist: &mut usize = &mut context.inventory.get_mut(&Scientists).unwrap().amount;
     *scientist += 2;
+
+    for mut marker_node in &mut image_query {
+        commands.entity(marker_node).despawn_recursive();
+    }
+
     next_scene.set(GameState::Xcom);
     next_state.set(Focus::Notice);
 }
@@ -582,7 +595,7 @@ fn spawn_mission(
                         requirment: vec![],
                         consequences: vec![],
                         rewards: vec![],
-                        time_left: 120,
+                        time_left: 50,
                         overworld_x: x,
                         overworld_y: y,
                         phase,
@@ -836,7 +849,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
         loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
         icons: HashMap::from([
-            (Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png")),
+            (Tech::HeavyBody, asset_server.load("Xcom_hud/Heavy.png")),
             (
                 Tech::MagicBullet,
                 asset_server.load("Xcom_hud/Magic_bullet.png"),
@@ -849,7 +862,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::DeterganceT1, asset_server.load("mascot.png")),
             (Tech::DeterganceT2, asset_server.load("mascot.png")),
             (Tech::EngineT1, asset_server.load("Xcom_hud/Fuel.png")),
-            (Tech::EngineT2, asset_server.load("Xcom_hud/Fuel.png")),
+            (Tech::EngineT2, asset_server.load("Xcom_hud/Fuel1.png")),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
             (Tech::Phase, asset_server.load("mascot.png")),
         ]),
