@@ -204,6 +204,7 @@ pub struct XcomState {
     pub inventory: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
     pub active_missions: Vec<Mission>,
+    pub finished_missions: Vec<Mission>,
     pub loadout: HashMap<Slot, Option<Tech>>,
     pub timer: Timer,
     pub speed: usize,
@@ -386,6 +387,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             progress: 0,
         }],
         active_missions: vec![],
+        finished_missions: vec![],
         selected_research: None,
         selected_production: None,
         loadout: HashMap::from([
@@ -419,25 +421,32 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn spawn_mission(
+    seed: usize,
     commands: &mut Commands,
     context: &ResMut<XcomState>,
     x: f32,
     y: f32,
     phase: f32,
-) -> Mission {
-    let mission = Mission {
-        id: "TODO".to_string(),
-        name: "Not implemented yet".to_string(),
-        enemy: Enemies::RedGirl,
-        requirment: vec![],
-        consequences: vec![],
-        rewards: vec![],
-        time_left: 20 * 7200,
-        overworld_x: x,
-        overworld_y: y,
-        phase,
-        status: MissionStatus::Pending,
+) -> Option<Mission> {
+    let mission = match seed {
+        0..=100 => Mission {
+            id: "TODO".to_string(),
+            name: "Not implemented yet".to_string(),
+            enemy: Enemies::RedGirl,
+            requirment: vec![],
+            consequences: vec![],
+            rewards: vec![],
+            time_left: 20 * 7200,
+            overworld_x: x,
+            overworld_y: y,
+            phase,
+            status: MissionStatus::Pending,
+        },
+        _ => {
+            return None;
+        }
     };
+
     commands.spawn((
         Button,
         ButtonLink(ButtonPath::MissionMenu),
@@ -453,7 +462,7 @@ fn spawn_mission(
         ImageNode::new(context.assets.circle.clone()),
         ZIndex(1),
     ));
-    mission
+    Some(mission)
 }
 
 fn game_over() {}
@@ -664,36 +673,39 @@ fn update(
         let engineers: usize = context.inventory[&Engineer].amount;
         context.time += 30;
 
-        let mut rng = rand::rng();
-        if 0 == rng.random_range(0..10) {
-            spawn_mission(
-                &mut commands,
-                &context,
-                rng.random_range(120..800) as f32, //The x spawn range
-                rng.random_range(120..500) as f32, //The y spawn range
-                rng.random_range(0..360) as f32,   //The complete phase randomisation
-            );
+        let mut rng = rand::thread_rng();
+        let possible_mission = spawn_mission(
+            rng.random_range(0..1000),
+            &mut commands,
+            &context,
+            rng.random_range(120..800) as f32, //The x spawn range
+            rng.random_range(120..500) as f32, //The y spawn range
+            rng.random_range(0..360) as f32,   //The complete phase randomisation
+        );
+
+        if let Some(mission) = possible_mission {
+            //New mission starting
             context.notice_title = "Invader Spotted".to_string();
             context.notice_text = "Airborne combatant spotted. Engagement is adviced. Upon ignoring the mission for too long, funding and scientists will be lost".to_string();
             next_state.set(Focus::Notice);
             context.timer.set_elapsed(Duration::from_secs_f32(10.));
         }
 
-        move_enemies(
-            marker_query,
-            (context.time as f32) / 80.0,
-            &context,
-            &next_state,
-        );
-
-        if let Some(selected_research) = &mut context.selected_research {
-            selected_research.progress += scientists.clone();
-            if (selected_research.progress > selected_research.cost) {
-                context.finished_research.push(selected_research.clone());
+        let XcomState {
+            selected_research,
+            finished_research,
+            notice_title,
+            notice_text,
+            ..
+        } = &mut *context;
+        if let Some(selected_research_deref) = selected_research {
+            selected_research_deref.progress += scientists.clone();
+            if (selected_research_deref.progress > selected_research_deref.cost) {
+                finished_research.push(selected_research_deref.clone());
                 //possible_research. (selected_research.clone()); TODO remove old tech
-                context.notice_title = "Finished Research".to_string();
-                context.notice_text = finished_research_text(selected_research.id);
-                context.selected_research = None;
+                *notice_title = "Finished Research".to_string();
+                *notice_text = finished_research_text(selected_research_deref.id);
+                *selected_research = None;
                 next_state.set(Focus::Notice);
             }
         }
@@ -702,6 +714,13 @@ fn update(
         //    if clock_query.is_some() {
         let mut text = text_query.get_mut(clock_query[0]).unwrap();
         **text = time_to_date(context.time);
+
+        move_enemies(
+            marker_query,
+            (context.time as f32) / 80.0,
+            &context,
+            &next_state,
+        );
     }
 }
 
