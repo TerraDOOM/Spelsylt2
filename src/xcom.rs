@@ -203,9 +203,22 @@ pub fn off_notice(mut notice_query: Query<&mut Node, With<NoticeScreen>>) {
     }
 }
 
-pub fn on_mission(mut mission_query: Query<&mut Node, With<MissionScreen>>) {
+pub fn on_mission(
+    mut mission_query: Query<&mut Node, With<MissionScreen>>,
+    mission: ResMut<MissionParams>,
+    mut description_query: Query<&mut Text, With<MissionPrompt>>,
+) {
     for mut mission_node in &mut mission_query {
         mission_node.display = Display::Flex;
+    }
+
+    for mut text in &mut description_query {
+        **text = match mission.enemy {
+            Enemies::RedGirl => "Red girl".to_string(),
+            Enemies::Lizard => "Lizard".to_string(),
+            Enemies::Tentacle => "Tentacle monster".to_string(),
+            Enemies::MoonGirl => "Moon princes".to_string(),
+        };
     }
 }
 
@@ -313,6 +326,9 @@ pub struct ScienceSelect(pub Tech);
 
 #[derive(Component, Debug)]
 pub struct MissionMarker(Mission);
+
+#[derive(Component, Debug)]
+pub struct MissionPrompt;
 
 fn button_system(
     mut interaction_query: Query<
