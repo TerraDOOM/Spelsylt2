@@ -429,7 +429,7 @@ fn spawn_mission(
     let mission = Mission {
         id: "TODO".to_string(),
         name: "Not implemented yet".to_string(),
-        enemy: "Cirno idk".to_string(),
+        enemy: Enemies::RedGirl,
         requirment: vec![],
         consequences: vec![],
         rewards: vec![],
@@ -457,9 +457,13 @@ fn spawn_mission(
     mission
 }
 
+fn game_over() {}
+
 fn move_enemies(
     mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
     passed_time: f32,
+    mut context: &ResMut<XcomState>,
+    mut next_state: &ResMut<NextState<Focus>>,
 ) {
     for (mut node, mut mission_marker) in &mut marker_query {
         let mission = &mut mission_marker.0;
@@ -467,7 +471,39 @@ fn move_enemies(
         mission.overworld_x += (passed_time + phase).sin() * 5.;
         mission.overworld_y += (passed_time + phase).cos() * 5.;
         mission.time_left -= passed_time as isize;
-        if mission.time_left < 0 {}
+        if mission.time_left < 0 {
+            mission.status = MissionStatus::Abandonend;
+            node.display = Display::None;
+            let XcomState {
+                inventory,
+                notice_title,
+                notice_text,
+                ..
+            } = &mut *context;
+            let scientist: &mut usize = &mut inventory.get_mut(&Scientists).unwrap().amount;
+
+            *notice_title = "Invader sucess".to_string();
+            match mission.enemy {
+                Enemies::RedGirl => {
+                    if (*scientist > 2) {
+                        *scientist -= 2;
+                        *notice_text = "The magical girl keeps rampaging across town. Many lives are lost in her pyromaniac craze. You have lost 2 scientist in the carnage".to_string();
+                        next_state.set(Focus::Notice);
+                    }
+                }
+                Enemies::Lizard => {
+                    if (*scientist > 2) {
+                        *scientist -= 2;
+                        *notice_text = "The lizardman manages to convert two of our finest scientist to their cause. You have lost 2 scientist in the carnage".to_string();
+                        next_state.set(Focus::Notice);
+                    }
+                }
+                _ => {
+                    *notice_text = "The magical girl keeps harasses, but nothing of stregic value was lost. Unrest grow".to_string();
+                    next_state.set(Focus::Notice);
+                }
+            }
+        }
         dbg!(mission_marker.0.time_left);
 
         node.left = Val::Px(mission_marker.0.overworld_x);
@@ -644,13 +680,21 @@ fn update(
             context.timer.set_elapsed(Duration::from_secs_f32(10.));
         }
 
-        move_enemies(marker_query, (context.time as f32) / 80.0);
+        move_enemies(
+            marker_query,
+            (context.time as f32) / 80.0,
+            &context,
+            &next_state,
+        );
 
         if let Some(selected_research) = &mut context.selected_research {
-            selected_research.progress += scientists;
+            selected_research.progress += scientists.clone();
             if (selected_research.progress > selected_research.cost) {
+                context.finished_research.push(selected_research.clone());
+                //possible_research. (selected_research.clone()); TODO remove old tech
                 context.notice_title = "Finished Research".to_string();
-                context.notice_text = "Finished tech, should be customized TODO".to_string();
+                context.notice_text = finished_research_text(selected_research.id);
+                context.selected_research = None;
                 next_state.set(Focus::Notice);
             }
         }
@@ -659,6 +703,17 @@ fn update(
         //    if clock_query.is_some() {
         let mut text = text_query.get_mut(clock_query[0]).unwrap();
         **text = time_to_date(context.time);
+    }
+}
+
+pub fn finished_research_text(tech: Tech) -> String {
+    match tech {
+        Tech::HeavyBody => {
+            "The heavy airplane body is a marvel of engineering. The engine and fueltank has doubled in size to allow for the heavier frame to even take air.".to_string()
+        }
+        _ => {
+            "Unkown research finished".to_string()
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 pub struct Mission {
     pub id: String,
     pub name: String,
-    pub enemy: String,
+    pub enemy: Enemies,
     pub requirment: Vec<String>,
     pub consequences: Vec<String>,
     pub status: MissionStatus,
@@ -39,6 +39,15 @@ pub enum MissionStatus {
     Lost,
     Won,
     Abandonend,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Enemies {
+    RedGirl,
+    Lizard,
+    Tentacle,
+    MoonGirl,
 }
 
 #[repr(usize)]
