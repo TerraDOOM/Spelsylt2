@@ -673,6 +673,7 @@ fn update(
         let engineers: usize = context.inventory[&Engineer].amount;
         context.time += 30;
 
+        //Spawner
         let mut rng = rand::thread_rng();
         let possible_mission = spawn_mission(
             rng.random_range(0..1000),
