@@ -617,7 +617,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                 .spawn(
                     (Node {
                         width: Val::Percent(40.0),
-                        height: Val::Percent(50.0),
+                        height: Val::Percent(40.0),
                         left: Val::Px(128.0),
                         flex_direction: FlexDirection::Column,
                         align_self: AlignSelf::Stretch,
@@ -631,27 +631,6 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     ..default()
                 })
                 .with_children(|option_box| {
-                    //Only done when spawning! TODO
-                    //                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
-                    /*                    option_box.spawn((
-                        Node {
-                            top: Val::Px(-64.0),
-                            left: Val::Px(64.0),
-                            ..default()
-                        },
-                        Text::new("x5"),
-                        TextFont {
-                            font: context.assets.font.clone(),
-                            font_size: 33.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
-                        PickingBehavior {
-                            should_block_lower: false,
-                            ..default()
-                        },
-                    ));*/
-
                     for research in context.finished_research.clone() {
                         if research.equipable {
                             make_equipment(option_box, context, Equipment(research.id));
