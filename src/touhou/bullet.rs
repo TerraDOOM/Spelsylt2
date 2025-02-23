@@ -108,7 +108,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 deployed: false,
             }),
         salted: false,
-        damage: 200,
+        damage: 50,
         phasing: false,
     }
 }
