@@ -116,6 +116,7 @@ pub fn touhou_plugin(app: &mut App) {
             OnEnter(GameState::Touhou),
             (
                 spawn_player,
+                make_bg,
                 bullet::config_loadout.after(spawn_player),
                 make_game_camera,
                 set_mission_status,
@@ -140,6 +141,7 @@ pub fn touhou_plugin(app: &mut App) {
         .add_systems(
             Update,
             (
+                scroll_map.run_if(in_state(GameState::Touhou)),
                 toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
                 animate_player,
             ),
@@ -307,6 +309,59 @@ fn make_game_camera(mut commands: Commands) {
         },
         TouhouCamera,
     ));
+}
+
+#[derive(Component)]
+struct ScrollingBg;
+
+fn make_bg(mut commands: Commands, params: Res<MissionParams>, asset_server: Res<AssetServer>) {
+    let map = params.map;
+
+    let img = asset_server.load(match params.map {
+        Map::Day => "Bakground/Sky1side.png",
+        Map::Night => "Bakground/Nightsky.png",
+        Map::Dusk => "Bakground/sunset.png",
+        Map::Moon => "Bakground/moon.png",
+    });
+
+    let img = if params.enemy == Enemies::MoonGirl {
+        asset_server.load("Bakground/moon.png")
+    } else {
+        img
+    };
+
+    commands.spawn((
+        Sprite {
+            image: img,
+            custom_size: Some(Vec2::new(1920.0, 1080.0)),
+            image_mode: SpriteImageMode::Tiled {
+                tile_x: true,
+                tile_y: false,
+                stretch_value: 1080.0 / 64.0,
+            },
+            rect: Some(Rect {
+                min: Vec2::new(0.0, 0.0),
+                max: Vec2::new(16.0 / 9.0 * 64.0, 64.0),
+            }),
+            ..Default::default()
+        },
+        Transform::from_xyz(0.0, 0.0, -1.0),
+        ScrollingBg,
+        TouhouMarker,
+    ));
+}
+
+fn scroll_map(time: Res<Time>, mut map: Single<&mut Sprite, With<ScrollingBg>>) {
+    let mut sprite = map.into_inner();
+
+    let Some(rect) = sprite.rect.as_mut() else {
+        panic!("wtf");
+    };
+
+    let scroll_value = time.delta_secs() * 8.0;
+
+    rect.min.x += scroll_value;
+    rect.max.x += scroll_value;
 }
 
 fn animate_player(

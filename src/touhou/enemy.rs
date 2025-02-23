@@ -187,6 +187,7 @@ pub struct BulletSpawner {
     pub stutter: Option<StutterBullet>,
     pub homing: Option<HomingBullet>,
     pub wave: Option<WaveBullet>,
+    pub delayed: Option<Box<DelayedBullet>>,
 }
 
 impl BulletSpawner {
@@ -205,6 +206,9 @@ impl BulletSpawner {
         }
         if let Some(wave) = self.wave {
             commands.add_bullet(wave);
+        }
+        if let Some(delayed) = self.delayed {
+            commands.add_bullet(*delayed.clone());
         }
     }
 
@@ -260,6 +264,13 @@ impl BulletSpawner {
                 sine_mod,
                 true_velocity,
             }),
+            ..self
+        }
+    }
+
+    pub fn delayed(self, delayed: DelayedBullet) -> Self {
+        Self {
+            delayed: Some(Box::new(delayed)),
             ..self
         }
     }

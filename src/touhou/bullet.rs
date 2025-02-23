@@ -83,26 +83,32 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
 }
 
 fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
+    let bundle = BulletBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+        collider: Collider { radius: 20.0 },
+        sprite: Sprite {
+            image: assets.rocket.clone(),
+            custom_size: Some(Vec2::new(100.0, 100.0)),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
         ammo_cost: 0,
-        bullet: BulletSpawner::new(BulletBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0)
-                .with_rotation(Quat::from_rotation_z(PI / 2.0)),
-            collider: Collider { radius: 100.0 },
-            sprite: Sprite {
-                image: assets.rocket.clone(),
-                custom_size: Some(Vec2::new(100.0, 100.0)),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .normal(Vec2 { x: 10.0, y: 0.0 })
-        .stutter(0.8, Vec2::new(10.0, 0.0), false)
-        .homing(60.0, TAU / 4.0, Target::Enemy),
-        salted: true,
-        damage: 9000,
-        phasing: true,
+        bullet: BulletSpawner::new(bundle.clone())
+            .normal(Vec2 { x: 10.0, y: 0.0 })
+            .delayed(DelayedBullet {
+                bullet: BulletSpawner::new(bundle)
+                    .normal(Vec2::new(10.0, 0.0))
+                    .homing(60.0, TAU / 4.0, Target::Enemy),
+                delay: 3.0,
+                deployed: false,
+            }),
+        salted: false,
+        damage: 1000,
+        phasing: false,
     }
 }
 
