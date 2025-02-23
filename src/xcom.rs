@@ -756,7 +756,6 @@ fn on_xcom(
     window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
     mut focus_state: ResMut<NextState<Focus>>,
     mut first_time: Local<bool>,
-    mut next_state: ResMut<NextState<Focus>>,
 ) {
     focus_state.set(Focus::Map);
 
@@ -807,7 +806,7 @@ fn on_xcom(
         *first_time = true;
         context.notice_title = "Hello Commander".to_string();
         context.notice_text = "Magical girls have started invading the nordic countries. It is up to your research their magic and launch a well equiped and elite task force. If we have atleast ten scientists we can launch a moon mission \nGood luck ".to_string();
-        next_state.set(Focus::Notice);
+        focus_state.set(Focus::Notice);
     }
 }
 
