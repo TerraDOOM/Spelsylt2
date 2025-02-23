@@ -1,12 +1,16 @@
-use std::{collections::HashMap, f32::consts::PI, time::Duration};
 use enemy::BulletSpawner;
+use std::{
+    collections::HashMap,
+    f32::consts::{PI, TAU},
+    time::Duration,
+};
 
 use bevy::{
     color::palettes::css::{BLUE, RED},
     ecs::query::QueryFilter,
     time::Stopwatch,
 };
-use enemy::{EnemyMarker, Health};
+use enemy::{BulletSpawner, EnemyMarker, Health};
 
 use super::*;
 
@@ -61,7 +65,7 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.05), TimerMode::Repeating),
         ammo_cost: 0,
-        bullet: BulletBundle {
+        bullet: BulletSpawner::new(BulletBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0)
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             collider: Collider { radius: 6.0 },
@@ -70,10 +74,8 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
                 ..Default::default()
             },
             ..Default::default()
-        },
-        bullet_type: BulletType::Normal(NormalBullet {
-            velocity: Vec2::new(20.0, 0.0),
-        }),
+        })
+        .normal(Vec2::new(20.0, 0.0)),
         salted: true,
         damage: 10,
         phasing: false,
@@ -84,7 +86,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
         ammo_cost: 0,
-        bullet: BulletBundle {
+        bullet: BulletSpawner::new(BulletBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0)
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             collider: Collider { radius: 100.0 },
@@ -94,10 +96,9 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 ..Default::default()
             },
             ..Default::default()
-        },
-        bullet_type: BulletType::Normal(NormalBullet {
-            velocity: Vec2::new(20.0, 0.0),
-        }),
+        })
+        .stutter(0.8, Vec2::new(20.0, 0.0), false)
+        .homing(60.0, TAU / 8.0),
         salted: true,
         damage: 9000,
         phasing: true,
@@ -108,8 +109,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
 pub struct Weapon {
     timer: Timer,
     ammo_cost: u32,
-    bullet: BulletBundle,
-    bullet_type: BulletType,
+    bullet: BulletSpawner,
     salted: bool,
     phasing: bool,
     damage: u32,
@@ -190,10 +190,10 @@ impl Weapon {
 
         let bullet = BulletBundle {
             transform: Transform {
-                translation: player_pos.extend(0.0) + self.bullet.transform.translation,
-                ..self.bullet.transform
+                translation: player_pos.extend(0.0) + self.bullet.bullet.transform.translation,
+                ..self.bullet.bullet.transform
             },
-            ..self.bullet.clone()
+            ..self.bullet.bullet.clone()
         };
 
         let mut ent = commands.spawn(bullet);
@@ -204,7 +204,7 @@ impl Weapon {
         .insert_if(Salted, || self.salted)
         .insert_if(Phasing, || self.phasing);
 
-        ent.add_bullet(self.bullet_type.clone());
+        self.bullet.clone().add_components(&mut ent);
     }
 }
 
@@ -620,8 +620,7 @@ fn resolve_delayed_bullets(
     for (entity, mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
         if lifetime.0.elapsed_secs() >= bullet.delay && !bullet.deployed {
             bullet.deployed = true;
-            if bullet.bullet.homing.is_some() {
-            }
+            if bullet.bullet.homing.is_some() {}
         }
     }
 }
