@@ -68,7 +68,9 @@ fn circular_aimed_emitter(
         &BulletSpawner,
         &mut CircularAimedEmitter,
     )>,
+    player: Single<&Transform, With<PlayerMarker>>,
 ) {
+    let playerpos = player.into_inner();
     for (trans, mut emitter, spawner, circ) in &mut query {
         emitter.timer.tick(time.delta());
 
@@ -84,6 +86,7 @@ fn circular_aimed_emitter(
                 let mut bullet = bullet.clone();
                 let dir = Vec2::from_angle(ang * i as f32);
                 bullet.transform.translation += (dir * circ.offset).extend(0.0);
+                let player_dir = playerpos.translation.xy() - bullet.transform.translation.xy();
 
                 let mut commands = commands.spawn(bullet);
 
@@ -95,7 +98,7 @@ fn circular_aimed_emitter(
                     commands.add_bullet(homing);
                 }
                 if let Some(stutter) = spawner.stutter {
-                    let velocity = dir.rotate(stutter.initial_velocity);
+                    let velocity = player_dir.normalize().rotate(stutter.initial_velocity);
                     commands.add_bullet(StutterBullet {
                         initial_velocity: velocity,
                         wait_time: 2.0,
@@ -129,7 +132,7 @@ pub fn spawn_enemy(mut commands: Commands, asset_server: Res<AssetServer>) {
                     },
                     bullet_spawner: BulletSpawner {
                         bullet: BulletBundle {
-                            collider: Collider { radius: 50.0 },
+                            collider: Collider { radius: 5.0 },
                             sprite: Sprite {
                                 image: asset_server.load("bullets/bullet1.png"),
                                 ..Default::default()
