@@ -247,10 +247,11 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
             image: player_assets.alive.clone(),
+            anchor: bevy::sprite::Anchor::Custom(Vec2::from((0.0, -0.1))),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
-        collider: Collider { radius: 40.0 },
+        collider: Collider { radius: 25.0 },
         lives: Life(3),
         ..Default::default()
     });
@@ -322,7 +323,7 @@ fn do_movement(
         sprite.image = asset_server.load("Xcom_hud/Playerrocket1.png");
     }
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 6.5;
 
     let new_pos = (trans.translation + wishdir).xy();
 
