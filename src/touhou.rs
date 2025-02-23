@@ -99,7 +99,7 @@ pub fn touhou_plugin(app: &mut App) {
     app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
         .init_state::<MissionState>()
         .insert_resource(ShowGizmos { enabled: false })
-        .add_systems(Startup, (load_player_assets, create_gameplay_rect))
+        .add_systems(Startup, (load_player_assets, load_touhou_assets, create_gameplay_rect))
         .add_systems(
             OnEnter(GameState::Touhou),
             (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
@@ -174,6 +174,19 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
         dead: asset_server.load("dead.png"),
         alive: asset_server.load("Xcom_hud/Playerrocket1.png"),
     })
+}
+
+fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(TouhouAssets {
+        redgirl: asset_server.load("Enemies\\girl1.png"),
+        bullet1: asset_server.load("bullets\\bullet1.png"),
+    })
+}
+
+#[derive(Resource)]
+pub struct TouhouAssets {
+    redgirl: Handle<Image>,
+    bullet1: Handle<Image>
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
