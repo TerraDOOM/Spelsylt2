@@ -502,6 +502,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
             parent
                 .spawn((
                     Node {
+                        left: Val::Px(30.0),
                         width: Val::Px(512.0),
                         height: Val::Px(512.0),
                         top: Val::Vh(0.0),
@@ -614,78 +615,71 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                 });
             //Equipment board
             parent
-                .spawn(
-                    (Node {
-                        width: Val::Percent(40.0),
-                        height: Val::Percent(50.0),
-                        left: Val::Px(128.0),
-                        flex_direction: FlexDirection::Column,
-                        align_self: AlignSelf::Stretch,
-                        overflow: Overflow::scroll_y(),
-
-                        ..default_button_node()
-                    }),
-                )
-                .insert(PickingBehavior {
-                    should_block_lower: false,
+                .spawn(Node {
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Row,
+                    min_height: Val::Percent(100.0),
                     ..default()
                 })
-                .with_children(|option_box| {
-                    //Only done when spawning! TODO
-                    //                    make_icon(option_box, context.assets.placeholder.clone(), &(*context));
-                    /*                    option_box.spawn((
-                        Node {
-                            top: Val::Px(-64.0),
-                            left: Val::Px(64.0),
-                            ..default()
-                        },
-                        Text::new("x5"),
-                        TextFont {
-                            font: context.assets.font.clone(),
-                            font_size: 33.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.7, 0.7, 0.9)),
-                        PickingBehavior {
+                .with_children(|parent| {
+                    parent
+                        .spawn(
+                            (Node {
+                                top: Val::Percent(10.0),
+                                width: Val::Percent(40.0),
+                                height: Val::Percent(50.0),
+                                left: Val::Px(128.0),
+                                grid_auto_flow: GridAutoFlow::Row,
+                                grid_template_rows: RepeatedGridTrack::px(3, 64.0),
+                                grid_template_columns: RepeatedGridTrack::px(5, 64.0),
+                                align_self: AlignSelf::Stretch,
+                                display: Display::Grid,
+                                overflow: Overflow::clip_y(),
+                                column_gap: Val::Px(10.0),
+                                row_gap: Val::Px(10.0),
+
+                                ..Default::default()
+                            }),
+                        )
+                        .insert(PickingBehavior {
                             should_block_lower: false,
                             ..default()
-                        },
-                    ));*/
-
-                    for research in context.finished_research.clone() {
-                        if research.equipable {
-                            make_equipment(option_box, context, Equipment(research.id));
-                        }
-                    }
-                });
-            parent
-                .spawn(
-                    (Node {
-                        width: Val::Percent(40.0),
-                        height: Val::Percent(25.0),
-                        top: Val::Percent(50.0),
-                        left: -Val::Percent(12.5),
-                        flex_direction: FlexDirection::Row,
-                        ..default_button_node()
-                    }),
-                )
-                .with_children(|option_box| {
-                    make_button(
-                        option_box,
-                        "Start mission",
-                        ButtonPath::StartMission,
-                        context,
-                        Val::Percent(50.0),
-                        Val::Percent(20.0),
-                    );
-                    make_button(
-                        option_box,
-                        "Exit",
-                        ButtonPath::MainMenu,
-                        context,
-                        Val::Percent(50.0),
-                        Val::Percent(20.0),
-                    );
+                        })
+                        .with_children(|option_box| {
+                            for research in context.finished_research.clone() {
+                                if research.equipable {
+                                    make_equipment(option_box, context, Equipment(research.id));
+                                }
+                            }
+                        });
+                    parent
+                        .spawn(Node {
+                            min_width: Val::Percent(100.0),
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(25.0),
+                            top: Val::Percent(65.0),
+                            left: -Val::Percent(50.0),
+                            flex_direction: FlexDirection::Row,
+                            ..default_button_node()
+                        })
+                        .with_children(|option_box| {
+                            make_button(
+                                option_box,
+                                "Start mission",
+                                ButtonPath::StartMission,
+                                context,
+                                Val::Percent(50.0),
+                                Val::Percent(70.0),
+                            );
+                            make_button(
+                                option_box,
+                                "Exit",
+                                ButtonPath::MainMenu,
+                                context,
+                                Val::Percent(50.0),
+                                Val::Percent(70.0),
+                            );
+                        });
                 });
         },
         false,

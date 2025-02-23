@@ -75,6 +75,7 @@ pub enum Tech {
     HoverMagic,
     MagicBullet,
     MachineGun,
+    MachineGunT2,
     AmmoStockpile,
     EngineT1,
     EngineT2,

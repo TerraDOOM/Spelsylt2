@@ -7,7 +7,10 @@ use bullet::{
     Target, WaveBullet,
 };
 
-use super::{bullet::{DelayedBullet, Velocity}, *};
+use super::{
+    bullet::{DelayedBullet, Velocity},
+    *,
+};
 
 pub fn enemy_plugin(app: &mut App) {
     app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
@@ -15,6 +18,10 @@ pub fn enemy_plugin(app: &mut App) {
             time: Stopwatch::new(),
         })
         .add_systems(Update, animate_sprites)
+        .add_systems(
+            OnEnter(GameState::Touhou),
+            |mut time: ResMut<EncounterTime>| time.time.reset(),
+        )
         .add_systems(
             FixedUpdate,
             (
@@ -504,9 +511,9 @@ fn spray_emitter(
                 );
 
                 let dir = (playerpos - trans.translation.xy()).normalize();
-    
+
                 let mut commands = commands.spawn(bullet);
-    
+
                 if let Some(normal) = spawner.normal {
                     let velocity = ang.rotate(normal.velocity);
                     let velocity = dir.rotate(velocity);
@@ -516,7 +523,7 @@ fn spray_emitter(
                     commands.add_bullet(rotating);
                 }
                 spray.count -= 1.0;
-            };
+            }
         }
 
         if emitter.timer.finished() {
@@ -552,24 +559,25 @@ fn rotating_spray_emitter(
         bullet.transform.translation += trans.translation;
         spray.rotation += spray.rotation_speed * time.delta_secs();
 
-
         if emitter.timer.elapsed_secs() < spray.firing_time {
             for i in 0..spray.spray_count {
                 spray.count += (time.delta().as_secs_f32() / spray.firing_speed);
                 for _ in 0..(spray.count as u64) {
                     let mut bullet = bullet.clone();
                     let ang = Vec2::from_angle(
-                        rng.random_range((spray.spray_width / -2.0)..=(spray.spray_width / 2.0)) + spray.rotation + (TAU/spray.spray_count as f32 * i as f32),
+                        rng.random_range((spray.spray_width / -2.0)..=(spray.spray_width / 2.0))
+                            + spray.rotation
+                            + (TAU / spray.spray_count as f32 * i as f32),
                     );
-        
+
                     let mut commands = commands.spawn(bullet);
-        
+
                     if let Some(normal) = spawner.normal {
                         let velocity = ang.rotate(normal.velocity);
                         commands.add_bullet(NormalBullet { velocity });
                     }
                     spray.count -= 1.0;
-                };
+                }
             }
         }
 
@@ -742,7 +750,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     },
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(4000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -922,7 +930,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     },
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(4000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -1065,7 +1073,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
-                                spray_width: TAU/4.0,
+                                spray_width: TAU / 4.0,
                                 firing_time: 0.5,
                                 firing_speed: 0.02,
                                 count: 0.0,
@@ -1094,10 +1102,10 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 active: Active(false),
                             })
                             .insert(RotatingSprayEmitter {
-                                spray_width: TAU/4.0,
+                                spray_width: TAU / 4.0,
                                 firing_time: 1.0,
                                 firing_speed: 0.01,
-                                rotation_speed: TAU/8.0,
+                                rotation_speed: TAU / 8.0,
                                 rotation: 0.0,
                                 count: 0.0,
                                 spray_count: 2,

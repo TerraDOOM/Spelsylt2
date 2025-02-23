@@ -7,6 +7,7 @@ use std::{
 use bevy::{
     color::palettes::css::{BLUE, RED},
     ecs::query::QueryFilter,
+    input::common_conditions::input_pressed,
     time::Stopwatch,
 };
 use enemy::{BulletSpawner, EnemyMarker, Health};
@@ -38,14 +39,14 @@ pub fn bullet_plugin(app: &mut App) {
                     move_homing_bullets,
                     move_wave_bullets,
                     move_stutter_bullets,
-                    resolve_delayed_bullets
+                    resolve_delayed_bullets,
                 )
                     .chain(),
                 check_enemy_bullets,
                 check_bullet_bullet,
                 check_player_bullets,
                 despawn_bullets,
-                fire_weapons,
+                fire_weapons.run_if(input_pressed(KeyCode::KeyZ)),
                 tick_bullets,
             )
                 .run_if(in_state(GameState::Touhou)),
@@ -77,7 +78,7 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
         })
         .normal(Vec2::new(20.0, 0.0)),
         salted: true,
-        damage: 10,
+        damage: 1,
         phasing: false,
     }
 }
@@ -103,7 +104,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 bullet: BulletSpawner::new(bundle)
                     .normal(Vec2::new(10.0, 0.0))
                     .homing(60.0, TAU / 4.0, Target::Enemy),
-                delay: 3.0,
+                delay: 0.7,
                 deployed: false,
             }),
         salted: false,
@@ -534,7 +535,7 @@ fn despawn_bullets(
     bullet_query: Query<(Entity, &Transform), EnemyBullets>,
 ) {
     for (entity, transform) in &bullet_query {
-        if !Rect::new(-1000.0, -1000.0, 1000.0, 1000.0).contains(transform.translation.xy()) {
+        if !Rect::new(-1500.0, -1500.0, 1500.0, 1500.0).contains(transform.translation.xy()) {
             commands.entity(entity).despawn()
         }
     }
@@ -651,7 +652,10 @@ fn resolve_delayed_bullets(
     for (entity, mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
         if lifetime.0.elapsed_secs() >= bullet.delay && !bullet.deployed {
             bullet.deployed = true;
-            bullet.bullet.clone().add_components(&mut commands.entity(entity));
+            bullet
+                .bullet
+                .clone()
+                .add_components(&mut commands.entity(entity));
         }
     }
 }
