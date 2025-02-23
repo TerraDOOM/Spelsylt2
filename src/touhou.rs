@@ -236,6 +236,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
         tentacle: asset_server.load("Enemies/Babyalien.png"),
+        lizard: asset_server.load("Enemies/Lizard.png"),
         rocket: asset_server.load("Xcom_hud/rocket2.png"),
     })
 }
@@ -247,6 +248,7 @@ pub struct TouhouAssets {
     kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
     tentacle: Handle<Image>,
+    lizard: Handle<Image>,
     rocket: Handle<Image>,
 }
 
