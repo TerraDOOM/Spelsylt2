@@ -660,7 +660,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                             flex_direction: FlexDirection::Row,
                             min_height: Val::Percent(10.0),
                             min_width: Val::Percent(40.0),
-                            ..default()
+                            ..default_button_node()
                         })
                         .with_child((
                             Text::new("Not loaded"),
@@ -675,8 +675,10 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     parent
                         .spawn(Node {
                             min_width: Val::Percent(100.0),
-                            width: Val::Percent(100.0),
+                            width: Val::Percent(80.0),
                             top: Val::Percent(10.0),
+                            left: Val::Percent(10.0),
+                            right: Val::Percent(10.0),
                             height: Val::Percent(25.0),
                             flex_direction: FlexDirection::Row,
                             ..default_button_node()
@@ -687,16 +689,16 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                                 "Start mission",
                                 ButtonPath::StartMission,
                                 context,
+                                Val::Percent(40.0),
                                 Val::Percent(50.0),
-                                Val::Percent(70.0),
                             );
                             make_button(
                                 option_box,
                                 "Exit",
                                 ButtonPath::MainMenu,
                                 context,
+                                Val::Percent(40.0),
                                 Val::Percent(50.0),
-                                Val::Percent(70.0),
                             );
                         });
                 });
