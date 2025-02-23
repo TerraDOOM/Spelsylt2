@@ -43,6 +43,15 @@ pub enum MissionStatus {
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Map {
+    Day,
+    Night,
+    Dusk,
+    Moon,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Enemies {
     RedGirl,
     Lizard,
@@ -72,6 +81,7 @@ pub enum Tech {
 #[derive(Resource)]
 pub struct MissionParams {
     pub loadout: Vec<String>,
-    pub enemy: String,
+    pub enemy: Enemies,
+    pub map: Map,
     //    pub mission: Mission,
 }
