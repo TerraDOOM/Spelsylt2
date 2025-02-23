@@ -276,11 +276,11 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
             image: player_assets.alive.clone(),
-            anchor: bevy::sprite::Anchor::Custom(Vec2::from((0.0, -0.1))),
+            anchor: bevy::sprite::Anchor::Custom(Vec2::from((0.1, -0.05))),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
-        collider: Collider { radius: 25.0 },
+        collider: Collider { radius: 7.5 },
         lives: Life(3),
         ..Default::default()
     });
