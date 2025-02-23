@@ -2,6 +2,7 @@ use bevy::{
     ecs::query::QueryFilter, input::common_conditions::input_just_pressed,
     render::camera::ScalingMode,
 };
+use bullet::AltFire;
 use enemy::{EnemyMarker, Health};
 
 use crate::prelude::*;
