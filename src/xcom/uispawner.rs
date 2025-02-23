@@ -617,7 +617,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                 .spawn(
                     (Node {
                         width: Val::Percent(40.0),
-                        height: Val::Percent(50.0),
+                        height: Val::Percent(40.0),
                         left: Val::Px(128.0),
                         flex_direction: FlexDirection::Column,
                         align_self: AlignSelf::Stretch,
