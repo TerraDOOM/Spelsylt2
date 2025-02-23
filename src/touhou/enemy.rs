@@ -10,7 +10,7 @@ use bullet::{
 use super::{bullet::DelayedBullet, *};
 
 pub fn enemy_plugin(app: &mut App) {
-    app.add_systems(OnEnter(GameState::Touhou), spawn_kaguya)
+    app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
         .insert_resource(EncounterTime {
             time: Stopwatch::new(),
         })
