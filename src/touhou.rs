@@ -147,7 +147,7 @@ fn nuke_touhou(
     touhou_camera: Query<Entity, With<TouhouCamera>>,
 ) {
     for obj in &touhou_objects {
-        commands.entity(obj).despawn_recursive();
+        commands.entity(obj).try_despawn_recursive();
     }
 
     for obj in &touhou_camera {
