@@ -47,6 +47,7 @@ pub enum Tech {
     MagicBullet,
     MachineGun,
     Rocket,
+    FinalMission,
 }
 
 #[derive(Resource)]

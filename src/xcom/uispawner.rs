@@ -302,6 +302,60 @@ pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
     );
 }
 
+pub fn spawn_notice_hud(commands: &mut Commands, context: &XcomState) {
+    commands.spawn_hud(
+        context,
+        NoticeScreen,
+        |parent| {
+            parent.spawn((
+                TitleNode,
+                Node {
+                    width: Val::Percent(80.0),
+                    left: Val::Percent(10.),
+                    height: Val::Percent(20.0),
+                    top: Val::Vh(5.0),
+                    flex_direction: FlexDirection::Row,
+                    ..default_button_node()
+                },
+                Text::new("Notice Title"),
+                TextFont {
+                    font: context.assets.font.clone(),
+                    font_size: 60.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            ));
+
+            parent.spawn((
+                YappNode,
+                Node {
+                    width: Val::Percent(80.0),
+                    left: Val::Percent(10.),
+                    height: Val::Percent(60.0),
+                    flex_direction: FlexDirection::Column,
+                    ..default_button_node()
+                },
+                Text::new("Notice text that keeps on yapping. Like damn bro keep on talking that Lorem Ipsum"),
+                TextFont {
+                    font: context.assets.font.clone(),
+                    font_size: 30.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            ));
+            make_button(
+                parent,
+                "Exit",
+                ButtonPath::MainMenu,
+                &*context,
+                Val::Percent(100.),
+                Val::Px(128.),
+            );
+        },
+        true,
+    );
+}
+
 trait UiExt {
     fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F, row: bool)
     where
