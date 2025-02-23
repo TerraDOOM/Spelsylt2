@@ -321,6 +321,7 @@ fn button_system(
             &mut ImageNode,
             &ButtonLink,
             Option<&ScienceSelect>,
+            Option<&MissionMarker>,
         ),
         (Changed<Interaction>, With<Button>),
     >,
@@ -329,7 +330,8 @@ fn button_system(
     mut next_state: ResMut<NextState<Focus>>,
     mut next_scene: ResMut<NextState<GameState>>,
 ) {
-    for (interaction, mut sprite, link, potential_tech) in &mut interaction_query {
+    for (interaction, mut sprite, link, potential_tech, potential_mission) in &mut interaction_query
+    {
         match *interaction {
             Interaction::Pressed => {
                 if link.0 != ButtonPath::MissionMenu {
@@ -369,7 +371,7 @@ fn button_system(
 
                         *mission_params = MissionParams {
                             loadout,
-                            enemy: Enemies::RedGirl,
+                            enemy: potential_mission.unwrap().0.enemy,
                             map: match ((context.time as f32 / 60.) % 24.) {
                                 7.0..=15.0 => Map::Day,
                                 15.0..=23.0 => Map::Dusk,
