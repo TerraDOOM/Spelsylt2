@@ -91,14 +91,15 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             collider: Collider { radius: 100.0 },
             sprite: Sprite {
-                image: assets.bullet1.clone(),
+                image: assets.rocket.clone(),
                 custom_size: Some(Vec2::new(100.0, 100.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
-        .stutter(0.8, Vec2::new(20.0, 0.0), false)
-        .homing(60.0, TAU / 8.0),
+        .normal(Vec2 { x: 10.0, y: 0.0 })
+        .stutter(0.8, Vec2::new(10.0, 0.0), false)
+        .homing(60.0, TAU / 4.0, Target::Enemy),
         salted: true,
         damage: 9000,
         phasing: true,
@@ -311,6 +312,14 @@ pub struct NormalBullet {
 pub struct HomingBullet {
     pub rotation_speed: f32,
     pub seeking_time: f32,
+    pub target: Target,
+}
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub enum Target {
+    #[default]
+    Enemy,
+    Player,
 }
 
 #[derive(Component, Clone, Copy, Default, Debug)]
@@ -561,30 +570,46 @@ fn move_homing_bullets(
     time: Res<Time>,
     mut bullet_query: Query<
         (
+            &mut Sprite,
             &HomingBullet,
             &mut NormalBullet,
             &mut Velocity,
             &Lifetime,
             &mut Transform,
         ),
-        (With<BulletMarker>, Without<PlayerMarker>),
+        With<BulletMarker>,
     >,
-    player: Single<&Transform, With<PlayerMarker>>,
+    player: Option<Single<&Transform, (PlayerFilter, Without<BulletMarker>)>>,
+    enemy: Option<Single<&Transform, (With<EnemyMarker>, Without<BulletMarker>)>>,
     mut gizmos: Gizmos,
 ) {
-    let playerpos = player.into_inner();
+    let enemy = enemy.map(|e| e.translation);
+    let player = player.map(|p| p.translation);
 
-    for (bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
+    for (mut sprite, bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if bullet.target == Target::Enemy && enemy.is_none() {
+            log::error!("can't find enemy");
+        }
+
+        let target_pos = match (bullet.target, player, enemy) {
+            (Target::Player, Some(player), _) => player,
+            (Target::Enemy, _, Some(enemy)) => enemy,
+            _ => continue,
+        }
+        .xy();
+
         if lifetime.0.elapsed_secs() <= bullet.seeking_time
             && normal.velocity.length().abs() >= 0.01
         {
-            let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize()
-                * normal.velocity.length();
+            let angle =
+                (target_pos - trans.translation.xy()).normalize() * normal.velocity.length();
 
             let rotation = bullet.rotation_speed * time.delta_secs();
+
             gizmos.arrow_2d(trans.translation.xy(), trans.translation.xy() + angle, BLUE);
 
             normal.velocity = normal.velocity.rotate_towards(angle, rotation);
+            trans.rotation = Quat::from_rotation_z(normal.velocity.to_angle());
         }
     }
 }

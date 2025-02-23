@@ -921,12 +921,16 @@ fn update_clock(
 ) {
     context.timer.tick(real_time.delta());
 
+    let mut text = text_query.get_mut(clock_query[0]).unwrap();
+    **text = time_to_date(
+        context.time
+            + (context.timer.elapsed_secs() / context.timer.duration().as_secs_f32() * 30.0)
+                as usize,
+    );
+
     if context.timer.just_finished() {
         context.timer.reset();
         context.time += 30;
-
-        let mut text = text_query.get_mut(clock_query[0]).unwrap();
-        **text = time_to_date(context.time);
 
         tick_writer.send(XcomTick);
     }
