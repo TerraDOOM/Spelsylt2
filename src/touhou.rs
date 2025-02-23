@@ -227,19 +227,24 @@ fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn update_hud(
-    ammo_count: Single<&Ammo, PlayerFilter>,
-    lives_count: Single<&Life, PlayerFilter>,
-    enemy_hp: Single<&Health, With<EnemyMarker>>,
+    player: Option<Single<(&Ammo, &Life), PlayerFilter>>,
+    enemy_hp: Option<Single<&Health, With<EnemyMarker>>>,
     mut ammo_text: Query<&mut Text, (With<AmmoCount>, Without<LifeCount>)>,
     mut hp_text: Query<&mut Text, (With<LifeCount>, Without<AmmoCount>)>,
     mut hp_bar: Query<&mut Node, (With<HPBar>)>,
 ) {
+    let Some((ammo_count, lives_count)) = player.map(|x| x.into_inner()) else {
+        return;
+    };
+    let Some(enemy_hp) = enemy_hp else {
+        return;
+    };
     for mut text in &mut ammo_text {
-        **text = format!["Ammo: {}", ***ammo_count];
+        **text = format!["Ammo: {}", **ammo_count];
     }
 
     for mut text in &mut hp_text {
-        **text = format!["Lives: {}", ***lives_count];
+        **text = format!["Lives: {}", **lives_count];
     }
 
     for mut node in &mut hp_bar {
