@@ -429,19 +429,88 @@ fn spawn_mission(
     phase: f32,
 ) -> Option<Mission> {
     let mission = match seed {
-        0..=100 => Mission {
-            id: "TODO".to_string(),
-            name: "Not implemented yet".to_string(),
-            enemy: Enemies::RedGirl,
-            requirment: vec![],
-            consequences: vec![],
-            rewards: vec![],
-            time_left: 20 * 7200,
-            overworld_x: x,
-            overworld_y: y,
-            phase,
-            status: MissionStatus::Pending,
-        },
+        //active spawn of "next" enemy
+        0..=100 => {
+            if context
+                .finished_missions
+                .iter()
+                .find(|n| !(n.enemy == Enemies::MoonGirl && n.status == MissionStatus::Won))
+                .is_some()
+            {
+                return None;
+            } else if context
+                .finished_missions
+                .iter()
+                .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
+                .is_some()
+            {
+                Mission {
+                    id: "moon_girl_active".to_string(),
+                    name: "Final mission".to_string(),
+                    enemy: Enemies::MoonGirl,
+                    requirment: vec![],
+                    consequences: vec![],
+                    rewards: vec![],
+                    time_left: 20 * 7200,
+                    overworld_x: x,
+                    overworld_y: y,
+                    phase,
+                    status: MissionStatus::Pending,
+                }
+            } else if context
+                .finished_missions
+                .iter()
+                .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
+                .is_some()
+            {
+                Mission {
+                    id: "Tentacle_active".to_string(),
+                    name: "Alien mutant spoted".to_string(),
+                    enemy: Enemies::Tentacle,
+                    requirment: vec![],
+                    consequences: vec![],
+                    rewards: vec![],
+                    time_left: 20 * 7200,
+                    overworld_x: x,
+                    overworld_y: y,
+                    phase,
+                    status: MissionStatus::Pending,
+                }
+            } else if context
+                .finished_missions
+                .iter()
+                .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
+                .is_some()
+            {
+                Mission {
+                    id: "Lizard_active".to_string(),
+                    name: "Lizarman engages".to_string(),
+                    enemy: Enemies::Lizard,
+                    requirment: vec![],
+                    consequences: vec![],
+                    rewards: vec![],
+                    time_left: 20 * 7200,
+                    overworld_x: x,
+                    overworld_y: y,
+                    phase,
+                    status: MissionStatus::Pending,
+                }
+            } else {
+                Mission {
+                    id: "RedGirl_active".to_string(),
+                    name: "Magical girl spoted".to_string(),
+                    enemy: Enemies::Tentacle,
+                    requirment: vec![],
+                    consequences: vec![],
+                    rewards: vec![],
+                    time_left: 20 * 7200,
+                    overworld_x: x,
+                    overworld_y: y,
+                    phase,
+                    status: MissionStatus::Pending,
+                }
+            }
+        }
         _ => {
             return None;
         }
