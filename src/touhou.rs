@@ -161,11 +161,15 @@ fn play_music(
     assets: Res<TouhouAssets>,
 ) {
     commands.spawn((
+        PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            ..default()
+        },
         AudioPlayer::new(asset_server.load(match mission_params.enemy {
-            /*            Enemies::RedGirl => "Music/Calm1.ogg",
-            Enemies::Lizard => "Music/Calm1.ogg",
-            Enemies::Tentacle => "Music/Calm1.ogg",
-            Enemies::MoonGirl => "Music/Calm1.ogg",*/
+            Enemies::RedGirl => "Music/Comabt1.ogg",
+            Enemies::Lizard => "Music/Combat2.ogg",
+            Enemies::Tentacle => "Music/Combat3.ogg",
+            Enemies::MoonGirl => "Music/Combat4.ogg",
             _ => "Music/Comabt1.ogg",
         })),
         TouhouMarker,

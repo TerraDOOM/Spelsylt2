@@ -778,6 +778,10 @@ fn on_xcom(
     commands.spawn((
         AudioPlayer::new(context.assets.geo_music.clone()),
         XcomObject,
+        PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            ..default()
+        },
     ));
 
     //    spawn_mission(&mut commands, &context, 100., 100., 0.);
