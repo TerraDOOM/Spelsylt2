@@ -311,7 +311,7 @@ struct LoadoutIcon;
 #[derive(Component, Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct ScienceSelect(pub Tech);
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct MissionMarker(Mission);
 
 fn button_system(
@@ -351,10 +351,21 @@ fn button_system(
                     }
                     ButtonPath::MissionMenu => {
                         next_state.set(Focus::Mission);
+                        log::info!("setting mission params, mission: {:#?}", potential_mission);
+
+                        *mission_params = MissionParams {
+                            loadout: vec![],
+                            enemy: potential_mission.unwrap().0.enemy,
+                            map: match ((context.time as f32 / 60.) % 24.) {
+                                7.0..=15.0 => Map::Day,
+                                15.0..=23.0 => Map::Dusk,
+                                _ => Map::Night,
+                            },
+                        };
                     }
 
                     ButtonPath::StartMission => {
-                        println!("Starting a Mission!");
+                        log::info!("Starting a Mission! {:#?}", potential_mission);
                         let mut loadout = vec![];
 
                         for (key, value) in &context.loadout {
@@ -369,15 +380,8 @@ fn button_system(
                             }
                         }
 
-                        *mission_params = MissionParams {
-                            loadout,
-                            enemy: potential_mission.unwrap().0.enemy,
-                            map: match ((context.time as f32 / 60.) % 24.) {
-                                7.0..=15.0 => Map::Day,
-                                15.0..=23.0 => Map::Dusk,
-                                _ => Map::Night,
-                            },
-                        };
+                        mission_params.loadout = loadout;
+
                         next_scene.set(GameState::Touhou);
                     }
 
@@ -642,6 +646,8 @@ fn spawn_mission(
                 return;
             }
         };
+
+        log::info!("Spawning mission {:?}", mission);
 
         commands.spawn((
             Button,

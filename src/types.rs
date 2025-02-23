@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Clone)]
+#[derive(Resource, Clone, Debug)]
 pub struct Mission {
     pub id: String,
     pub name: String,

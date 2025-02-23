@@ -439,7 +439,7 @@ fn make_bg(mut commands: Commands, params: Res<MissionParams>, asset_server: Res
     let map = params.map;
 
     let img = asset_server.load(match params.map {
-        Map::Day => "Bakground/Sky1side.png",
+        Map::Day => "Bakground/Sky1Side.png",
         Map::Night => "Bakground/Nightsky.png",
         Map::Dusk => "Bakground/sunset.png",
         Map::Moon => "Bakground/moon.png",
