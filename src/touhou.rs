@@ -645,7 +645,7 @@ fn draw_gizmos(
     enabled: ResMut<ShowGizmos>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
-    if enabled.enabled {
+    if enabled.enabled || true {
         return;
     }
     use bevy::color::palettes::css::RED;
