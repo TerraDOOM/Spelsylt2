@@ -5,8 +5,6 @@ use bevy::{
 
 use crate::prelude::*;
 
-use bevy_flicker;
-
 mod bullet;
 mod enemy;
 
@@ -52,6 +50,7 @@ impl Circle {
         Self { pos, radius }
     }
 
+    #[allow(dead_code)]
     fn within(&self, rect: Rect) -> bool {
         let Self { pos, radius } = *self;
 
@@ -82,8 +81,6 @@ struct GameplayRect {
 enum TouhouSets {
     EnterTouhou,
     Gameplay,
-    OnDeath,
-    ExitTouhou,
 }
 
 #[derive(Resource)]
@@ -98,39 +95,34 @@ pub fn touhou_plugin(app: &mut App) {
             .run_if(in_state(GameState::Touhou).and(in_state(MissionState::Ongoing)))
     };
 
-    app.add_plugins((
-        bullet::bullet_plugin,
-        enemy::enemy_plugin,
-        bevy_flicker::FlickerPlugin,
-    ))
-    .init_state::<MissionState>()
-    .insert_resource(ShowGizmos { enabled: false })
-    .add_systems(Startup, (load_player_assets, create_gameplay_rect))
-    .add_systems(
-        OnEnter(GameState::Touhou),
-        (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
-    )
-    .add_systems(
-        FixedUpdate,
-        (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
-    )
-    .add_systems(
-        FixedPostUpdate,
-        (on_death.run_if(player_dead), on_damage)
-            .chain()
-            .after(bullet::process_player_hits),
-    )
-    .add_systems(
-        Update,
-        toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
-    )
-    .add_systems(Update, flicker_player)
-    .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
-    // set them all to only run if gamestate is touhou
-    .configure_sets(FixedUpdate, touhou_gameplay_pred())
-    .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
-    .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
-    .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+    app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
+        .init_state::<MissionState>()
+        .insert_resource(ShowGizmos { enabled: false })
+        .add_systems(Startup, (load_player_assets, create_gameplay_rect))
+        .add_systems(
+            OnEnter(GameState::Touhou),
+            (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
+        )
+        .add_systems(
+            FixedUpdate,
+            (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
+        )
+        .add_systems(
+            FixedPostUpdate,
+            (on_death.run_if(player_dead), on_damage)
+                .chain()
+                .after(bullet::process_player_hits),
+        )
+        .add_systems(
+            Update,
+            toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
+        )
+        .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
+        // set them all to only run if gamestate is touhou
+        .configure_sets(FixedUpdate, touhou_gameplay_pred())
+        .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
+        .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
+        .add_systems(OnExit(GameState::Touhou), nuke_touhou);
 }
 
 fn toggle_gizmos(mut r: ResMut<ShowGizmos>) {
@@ -198,16 +190,14 @@ fn update_invulnerability(
         timer.0.tick(time.delta());
 
         if timer.0.finished() {
-            commands
-                .entity(ent)
-                .remove::<(Invulnerability, bevy_flicker::components::RepeatingFlicker)>();
+            commands.entity(ent).remove::<(Invulnerability)>();
         }
     }
 }
 
 fn make_game_camera(mut commands: Commands) {
     commands.spawn((
-        Camera2d::default(),
+        Camera2d,
         OrthographicProjection {
             near: -1000.0,
             far: 1000.0,
@@ -223,11 +213,7 @@ fn make_game_camera(mut commands: Commands) {
     ));
 }
 
-fn player_immortal(player: Option<Single<Entity, (PlayerFilter, With<Invulnerability>)>>) -> bool {
-    player.is_some()
-}
-
-#[derive(Component)]
+#[derive(Component, Deref)]
 struct Invulnerability(Timer);
 
 #[derive(Bundle, Default)]
@@ -237,10 +223,14 @@ pub struct Player {
     transform: Transform,
     lives: Life,
     markers: (PlayerMarker, TouhouMarker),
+    ammo: Ammo,
 }
 
-#[derive(Component)]
+#[derive(Component, Deref)]
 pub struct Life(usize);
+
+#[derive(Component, Deref, DerefMut, Default)]
+pub struct Ammo(u32);
 
 impl Default for Life {
     fn default() -> Self {
@@ -274,23 +264,12 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     });
 }
 
+#[allow(dead_code)]
 fn flicker_player(
     mut commands: Commands,
     player: Option<Single<Entity, (PlayerFilter, Added<Invulnerability>)>>,
 ) {
-    use bevy_flicker::prelude::*;
-
-    let Some(ent) = player.map(|x| x.into_inner()) else {
-        return;
-    };
-    commands.entity(ent).insert(
-        RepeatingFlicker::builder()
-            .with_color(LinearRgba::new(0.0, 0.0, 0.0, 0.7).into())
-            .with_flicker_time_length(0.05)
-            .with_time_between_flickers(0.05)
-            .with_time_between_pulses(0.0)
-            .build(),
-    );
+    todo!()
 }
 
 fn draw_gizmos(

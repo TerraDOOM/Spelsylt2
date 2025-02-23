@@ -1,12 +1,11 @@
 #![allow(unused_mut, unused_variables, unused_parens, non_camel_case_types)]
 
 use bevy::{
-    dev_tools::{self, DevToolsPlugin},
+    dev_tools::{self},
     input::common_conditions::*,
     prelude::*,
-    winit::{UpdateMode, WinitSettings},
+    winit::WinitSettings,
 };
-use std::time::Duration;
 
 mod prelude;
 mod touhou;
@@ -21,21 +20,10 @@ enum GameState {
     Touhou,
 }
 
-fn toggle_overlay(
-    input: Res<ButtonInput<KeyCode>>,
-    mut options: ResMut<bevy::dev_tools::ui_debug_overlay::UiDebugOptions>,
-) {
-    if input.just_pressed(KeyCode::Space) {
-        // The toggle method will enable the debug_overlay if disabled and disable if enabled
-        options.toggle();
-    }
-}
-
 fn main() {
     App::new()
         .insert_resource(WinitSettings::game())
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .add_plugins(dev_tools::ui_debug_overlay::DebugUiPlugin)
         .add_plugins((xcom::xcom_plugin, touhou::touhou_plugin))
         .init_state::<GameState>()
         .add_systems(Startup, (global_setup, create_camera))
@@ -64,18 +52,7 @@ fn enter_touhou(
     mut winit: ResMut<WinitSettings>,
     global_camera: Single<Entity, With<GlobalCamera>>,
 ) {
-    set_winit_touhou(winit);
     next_state.set(GameState::Touhou);
-}
-
-fn set_winit_xcom(mut winit: ResMut<WinitSettings>) {
-    winit.focused_mode = UpdateMode::reactive_low_power(Duration::from_secs(1));
-    winit.unfocused_mode = UpdateMode::reactive_low_power(Duration::from_secs(1));
-}
-
-fn set_winit_touhou(mut winit: ResMut<WinitSettings>) {
-    winit.focused_mode = UpdateMode::Continuous;
-    winit.unfocused_mode = UpdateMode::Continuous;
 }
 
 #[derive(Component)]
@@ -99,7 +76,7 @@ fn destroy_bg(mut commands: Commands, bg: Single<Entity, With<MenuBG>>) {
 }
 
 fn create_camera(mut commands: Commands) {
-    commands.spawn((Camera2d::default(), GlobalCamera));
+    commands.spawn((Camera2d, GlobalCamera));
 }
 
 fn destroy_camera(mut commands: Commands, global_camera: Single<Entity, With<GlobalCamera>>) {

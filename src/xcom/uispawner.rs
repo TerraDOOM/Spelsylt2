@@ -46,7 +46,7 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                 ));
 
             let mut make_geo_button =
-                |name, id| make_button(parent, name, id, &*context, Val::Px(256.0), Val::Px(64.0));
+                |name, id| make_button(parent, name, id, context, Val::Px(256.0), Val::Px(64.0));
 
             make_geo_button("Research", ButtonPath::ScienceMenu);
             make_geo_button("Production", ButtonPath::ProductionMenu);
@@ -103,7 +103,7 @@ fn make_science_button(parent: &mut ChildBuilder, research: &Research, context: 
                 height: Val::Px(80.0),
                 ..default_button_node()
             },
-            ScienceSelect(research.id.clone()),
+            ScienceSelect(research.id),
             ImageNode::new(context.assets.button_normal.clone()),
         ))
         .insert(PickingBehavior {
@@ -142,7 +142,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                 .with_children(|research_icon| {
                     for unlocked_technology in &context.finished_research {
                         let icon = context.assets.icons[&unlocked_technology.id].clone();
-                        make_icon(research_icon, icon, &(*context));
+                        make_icon(research_icon, icon, context);
                     }
                 });
 
@@ -193,7 +193,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                     };*/
 
                     for potential_research in &context.possible_research {
-                        make_science_button(option_box, &potential_research, &*context);
+                        make_science_button(option_box, potential_research, context);
                     }
                     /*make_science_button("Hover Magic1", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic2", ButtonPath::ScienceMenu);
@@ -222,7 +222,7 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                         option_box,
                         "Exit",
                         ButtonPath::MainMenu,
-                        &*context,
+                        context,
                         Val::Percent(100.),
                         Val::Px(128.),
                     );
@@ -295,7 +295,7 @@ pub fn spawn_manufacturing_hud(commands: &mut Commands, context: &XcomState) {
                 .with_children(|production_area| {
                     for unlocked_technology in &context.finished_research {
                         let icon = context.assets.icons[&unlocked_technology.id].clone();
-                        make_icon(production_area, icon, &(*context));
+                        make_icon(production_area, icon, context);
                     }
                 });
         },
@@ -348,7 +348,7 @@ pub fn spawn_notice_hud(commands: &mut Commands, context: &XcomState) {
                 parent,
                 "Exit",
                 ButtonPath::MainMenu,
-                &*context,
+                context,
                 Val::Percent(100.),
                 Val::Px(128.),
             );
@@ -363,7 +363,7 @@ trait UiExt {
         F: for<'r> FnOnce(&mut ChildBuilder<'r>);
 }
 
-impl<'a, 'b> UiExt for Commands<'a, 'b> {
+impl UiExt for Commands<'_, '_> {
     fn spawn_hud<T: Component, F>(&mut self, ctx: &XcomState, marker: T, builder: F, row: bool)
     where
         F: for<'r> FnOnce(&mut ChildBuilder<'r>),
@@ -494,7 +494,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_ship_icon(
                         ship_box,
                         context.assets.placeholder.clone(),
-                        &(*context),
+                        context,
                         Val::Px(0.0),
                         Val::Px(0.0),
                         Slot::Front,
@@ -502,7 +502,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_ship_icon(
                         ship_box,
                         context.assets.button_green.clone(),
-                        &(*context),
+                        context,
                         Val::Px(0.0),
                         Val::Px(32.0),
                         Slot::Core1,
@@ -510,7 +510,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_ship_icon(
                         ship_box,
                         context.assets.icons[&Tech::MagicBullet].clone(),
-                        &(*context),
+                        context,
                         Val::Px(0.0),
                         Val::Px(64.0),
                         Slot::Engine,
@@ -518,7 +518,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_ship_icon(
                         ship_box,
                         context.assets.icons[&Tech::MachineGun].clone(),
-                        &(*context),
+                        context,
                         Val::Px(-96.0),
                         Val::Px(-32.0),
                         Slot::LeftWing1,
@@ -526,7 +526,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     make_ship_icon(
                         ship_box,
                         context.assets.icons[&Tech::Rocket].clone(),
-                        &(*context),
+                        context,
                         Val::Px(96.0),
                         Val::Px(-96.0),
                         Slot::RightWing1,
@@ -572,10 +572,10 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         },
                     ));*/
 
-                    make_equipment(option_box, &(*context), Equipment(Tech::HeavyBody));
-                    make_equipment(option_box, &(*context), Equipment(Tech::MagicBullet));
-                    make_equipment(option_box, &(*context), Equipment(Tech::MachineGun));
-                    make_equipment(option_box, &(*context), Equipment(Tech::Rocket));
+                    make_equipment(option_box, context, Equipment(Tech::HeavyBody));
+                    make_equipment(option_box, context, Equipment(Tech::MagicBullet));
+                    make_equipment(option_box, context, Equipment(Tech::MachineGun));
+                    make_equipment(option_box, context, Equipment(Tech::Rocket));
                 });
             parent
                 .spawn(
@@ -593,7 +593,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         option_box,
                         "Start mission",
                         ButtonPath::StartMission,
-                        &*context,
+                        context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
                     );
@@ -601,7 +601,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         option_box,
                         "Exit",
                         ButtonPath::MainMenu,
-                        &*context,
+                        context,
                         Val::Percent(50.0),
                         Val::Percent(20.0),
                     );
