@@ -199,8 +199,8 @@ pub struct XcomObject;
 #[derive(Component)]
 pub struct Clock;
 
-#[derive(Component)]
-pub struct ShipComponent(Slot);
+#[derive(Component, Deref, DerefMut)]
+pub struct ShipComponent(pub Slot);
 
 #[derive(Resource)]
 pub struct XcomResources {
@@ -211,6 +211,8 @@ pub struct XcomResources {
     pub button_normal_big: Handle<Image>,
     pub button_green: Handle<Image>,
     pub button_green_hover: Handle<Image>,
+    button_equip: Handle<Image>,
+    button_equip_alt: Handle<Image>,
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
     pub loadout: Handle<Image>,
@@ -300,8 +302,6 @@ fn button_system(
     for (interaction, mut sprite, link, potential_tech) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                // Depending on button flag, do something
-                //                log::info!(link);
                 if link.0 != ButtonPath::MissionMenu {
                     sprite.image = context.assets.button_normal_hover.clone();
                 }
@@ -327,7 +327,13 @@ fn button_system(
 
                         for (key, value) in &context.loadout {
                             if let Some(value) = value {
-                                loadout.push((value.clone(), true));
+                                loadout.push((
+                                    *value,
+                                    match *key {
+                                        (Slot::Core1 | Slot::Engine) => true,
+                                        _ => false,
+                                    },
+                                ));
                             }
                         }
 
@@ -779,6 +785,9 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_normal_big: asset_server.load("Xcom_hud/clock.png"),
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
+
+        button_equip: asset_server.load("Xcom_hud/Icon_equip.png"),
+        button_equip_alt: asset_server.load("Xcom_hud/Icon_equip_alt.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
         loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
         icons: HashMap::from([

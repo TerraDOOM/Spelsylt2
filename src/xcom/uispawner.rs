@@ -430,7 +430,13 @@ pub fn unequip_loadout(
             dbg!(*interaction);
             context.loadout.insert(component.0, None);
             let mut node = image_query.get_mut(children[0]).unwrap();
-            *node = ImageNode::new(context.assets.button_green.clone());
+
+            *node = match **component {
+                (Slot::Core1 | Slot::Engine) => {
+                    ImageNode::new(context.assets.button_equip_alt.clone())
+                }
+                _ => ImageNode::new(context.assets.button_equip.clone()),
+            }
         }
     }
 }
@@ -508,7 +514,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     } else {
                         make_ship_icon(
                             ship_box,
-                            context.assets.button_green.clone(),
+                            context.assets.button_equip.clone(),
                             context,
                             Val::Px(0.0),
                             Val::Px(0.0),
@@ -528,7 +534,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     } else {
                         make_ship_icon(
                             ship_box,
-                            context.assets.button_green.clone(),
+                            context.assets.button_equip_alt.clone(),
                             context,
                             Val::Px(0.0),
                             Val::Px(32.0),
@@ -548,7 +554,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     } else {
                         make_ship_icon(
                             ship_box,
-                            context.assets.button_green.clone(),
+                            context.assets.button_equip_alt.clone(),
                             context,
                             Val::Px(0.0),
                             Val::Px(64.0),
@@ -568,7 +574,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     } else {
                         make_ship_icon(
                             ship_box,
-                            context.assets.button_green.clone(),
+                            context.assets.button_equip.clone(),
                             context,
                             Val::Px(-96.0),
                             Val::Px(-32.0),
@@ -588,7 +594,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     } else {
                         make_ship_icon(
                             ship_box,
-                            context.assets.button_green.clone(),
+                            context.assets.button_equip.clone(),
                             context,
                             Val::Px(96.0),
                             Val::Px(-96.0),
@@ -686,7 +692,7 @@ fn make_equipment(parent: &mut ChildBuilder, context: &XcomState, equipment_type
             },
             Button,
             equipment_type.clone(),
-            ImageNode::new(context.assets.button_green.clone()),
+            ImageNode::new(context.assets.button_equip.clone()),
         ))
         .with_child((
             Node {
