@@ -77,9 +77,11 @@ pub enum Tech {
     MachineGun,
     AmmoStockpile,
     EngineT1,
+    EngineT2,
     Rocket,
     DeterganceT1,
     DeterganceT2,
+    Phase,
 }
 
 #[derive(Resource)]

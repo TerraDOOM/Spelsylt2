@@ -33,6 +33,10 @@ impl Collider {
         let Self { radius } = *self;
         Circle { pos, radius }
     }
+
+    fn new(radius: f32) -> Self {
+        Self { radius }
+    }
 }
 
 #[derive(Default, Copy, Clone, Debug)]
@@ -84,6 +88,9 @@ enum TouhouSets {
     Gameplay,
 }
 
+#[derive(Component, Deref, DerefMut, Default)]
+struct Speed(f32);
+
 #[derive(Resource)]
 pub struct PlayerAssets {
     dead: Handle<Image>,
@@ -107,7 +114,13 @@ pub fn touhou_plugin(app: &mut App) {
         )
         .add_systems(
             OnEnter(GameState::Touhou),
-            (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
+            (
+                spawn_player,
+                bullet::config_loadout.after(spawn_player),
+                make_game_camera,
+                set_mission_status,
+            )
+                .in_set(TouhouSets::EnterTouhou),
         )
         .add_systems(
             FixedUpdate,
@@ -177,7 +190,7 @@ fn nuke_touhou(
     }
 }
 
-const N_SHIP_TEXTURES: usize = 2;
+const N_SHIP_TEXTURES: usize = 3;
 
 fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let atlas =
@@ -193,8 +206,16 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies\\godhelp\\girl1.png"),
-        bullet1: asset_server.load("bullets\\bullet1.png"),
+        redgirl: asset_server.load("Enemies/godhelp/Girl1.png"),
+        bullet1: asset_server.load("bullets/bullet1.png"),
+        kaguya_sheet: asset_server.load("Enemies/Moongirl1-sheet.png"),
+        kaguya_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(128),
+            5,
+            1,
+            None,
+            None,
+        )),
         tentacle: asset_server.load("Enemies\\babyalien.png")
     })
 }
@@ -202,6 +223,8 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 #[derive(Resource)]
 pub struct TouhouAssets {
     redgirl: Handle<Image>,
+    kaguya_sheet: Handle<Image>,
+    kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
     tentacle: Handle<Image>,
 }
@@ -286,8 +309,8 @@ fn animate_player(
 
     atlas.index = match direction {
         1 => 0,
-        0 => 0,
-        -1 => 1,
+        0 => 1,
+        -1 => 2,
         _ => unreachable!(),
     };
 
@@ -319,9 +342,10 @@ pub struct Player {
     lives: Life,
     markers: (PlayerMarker, TouhouMarker),
     ammo: Ammo,
+    speed: Speed,
 }
 
-#[derive(Component, Deref)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Life(usize);
 
 #[derive(Component, Deref, DerefMut, Default)]
@@ -359,6 +383,8 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
         collider: Collider { radius: 7.5 },
         lives: Life(3),
+        speed: Speed(6.5),
+        ammo: Ammo(1000),
         ..Default::default()
     });
 }
@@ -405,9 +431,9 @@ fn do_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
     asset_server: ResMut<AssetServer>,
-    mut player_info: Single<(&mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
+    mut player_info: Single<(&Speed, &mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
 ) {
-    let (mut trans, mut collider, mut sprite) = player_info.into_inner();
+    let (speed, mut trans, mut collider, mut sprite) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -416,7 +442,7 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 6.5;
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * **speed;
 
     let new_pos = (trans.translation + wishdir).xy();
 

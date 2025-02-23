@@ -10,10 +10,11 @@ use bullet::{
 use super::{bullet::DelayedBullet, *};
 
 pub fn enemy_plugin(app: &mut App) {
-    app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
+    app.add_systems(OnEnter(GameState::Touhou), spawn_kaguya)
         .insert_resource(EncounterTime {
             time: Stopwatch::new(),
         })
+        .add_systems(Update, animate_sprites)
         .add_systems(
             FixedUpdate,
             (
@@ -86,6 +87,17 @@ pub struct AnimatedSprite {
     max_index: usize,
     min_index: usize,
     index: usize,
+}
+
+impl AnimatedSprite {
+    fn new(time: f32, max_index: usize, min_index: usize) -> Self {
+        AnimatedSprite {
+            transition_time: Timer::from_seconds(time, TimerMode::Repeating),
+            max_index,
+            min_index,
+            index: min_index,
+        }
+    }
 }
 
 pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut AnimatedSprite)>) {
@@ -359,7 +371,10 @@ fn circular_wave_emitter(
                 }
                 if let Some(mut rotating) = spawner.wave {
                     let velocity = dir.rotate(rotating.true_velocity);
-                    commands.add_bullet(WaveBullet { sine_mod: rotating.sine_mod, true_velocity: velocity });
+                    commands.add_bullet(WaveBullet {
+                        sine_mod: rotating.sine_mod,
+                        true_velocity: velocity,
+                    });
                 }
             }
 
@@ -396,23 +411,25 @@ fn circular_homing_emitter(
             emitter.timer.reset();
 
             let ang = TAU / circ.count as f32;
-                let mut bullet = bullet.clone();
-                let dir = Vec2::from_angle(ang * circ.idx as f32);
-                bullet.transform.translation += (dir * circ.offset).extend(0.0);
-                let player_dir = playerpos.translation.xy() - bullet.transform.translation.xy();
+            let mut bullet = bullet.clone();
+            let dir = Vec2::from_angle(ang * circ.idx as f32);
+            bullet.transform.translation += (dir * circ.offset).extend(0.0);
+            let player_dir = playerpos.translation.xy() - bullet.transform.translation.xy();
 
-                let mut commands = commands.spawn(bullet);
+            let mut commands = commands.spawn(bullet);
 
-                if let Some(normal) = spawner.normal {
-                    let velocity = dir.rotate(normal.velocity);
-                    commands.add_bullet(NormalBullet { velocity });
-                }
-                if let Some(mut rotating) = spawner.homing {
-                    commands.add_bullet(rotating);
-                }
+            if let Some(normal) = spawner.normal {
+                let velocity = dir.rotate(normal.velocity);
+                commands.add_bullet(NormalBullet { velocity });
+            }
+            if let Some(mut rotating) = spawner.homing {
+                commands.add_bullet(rotating);
+            }
 
             circ.idx += 1;
-            if circ.idx == 4 { circ.idx = 0; }
+            if circ.idx == 4 {
+                circ.idx = 0;
+            }
         }
     }
 }

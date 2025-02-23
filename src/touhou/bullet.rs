@@ -54,16 +54,11 @@ pub fn bullet_plugin(app: &mut App) {
             FixedPostUpdate,
             (bullet_bullet_hit, process_player_hits, process_enemy_hits)
                 .run_if(in_state(GameState::Touhou)),
-        )
-        .add_systems(Startup, (make_cannon, make_cannon2));
+        );
 }
 
-fn add_dead(asset_server: Res<AssetServer>) {
-    let _: Handle<Image> = asset_server.load("dead.png");
-}
-
-fn make_cannon(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Weapon {
+fn make_machinegun(assets: &TouhouAssets) -> Weapon {
+    Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.05), TimerMode::Repeating),
         ammo_cost: 0,
         bullet: BulletBundle {
@@ -71,44 +66,42 @@ fn make_cannon(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             collider: Collider { radius: 6.0 },
             sprite: Sprite {
-                image: asset_server.load("bullets/bullet1.png"),
+                image: assets.bullet1.clone(),
                 ..Default::default()
             },
             ..Default::default()
         },
         bullet_type: BulletType::Normal(NormalBullet {
-            velocity: Vec2::new(-20.0, 0.0),
+            velocity: Vec2::new(20.0, 0.0),
         }),
         salted: true,
         damage: 10,
         phasing: false,
-    });
+    }
 }
 
-fn make_cannon2(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands
-        .spawn(Weapon {
-            timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-            ammo_cost: 0,
-            bullet: BulletBundle {
-                transform: Transform::from_xyz(0.0, 0.0, 0.0)
-                    .with_rotation(Quat::from_rotation_z(PI / 2.0)),
-                collider: Collider { radius: 100.0 },
-                sprite: Sprite {
-                    image: asset_server.load("bullets/bullet1.png"),
-                    custom_size: Some(Vec2::new(100.0, 100.0)),
-                    ..Default::default()
-                },
+fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
+    Weapon {
+        timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
+        ammo_cost: 0,
+        bullet: BulletBundle {
+            transform: Transform::from_xyz(0.0, 0.0, 0.0)
+                .with_rotation(Quat::from_rotation_z(PI / 2.0)),
+            collider: Collider { radius: 100.0 },
+            sprite: Sprite {
+                image: assets.bullet1.clone(),
+                custom_size: Some(Vec2::new(100.0, 100.0)),
                 ..Default::default()
             },
-            bullet_type: BulletType::Normal(NormalBullet {
-                velocity: Vec2::new(-20.0, 0.0),
-            }),
-            salted: true,
-            damage: 9000,
-            phasing: true,
-        })
-        .insert(AltFire);
+            ..Default::default()
+        },
+        bullet_type: BulletType::Normal(NormalBullet {
+            velocity: Vec2::new(20.0, 0.0),
+        }),
+        salted: true,
+        damage: 9000,
+        phasing: true,
+    }
 }
 
 #[derive(Component)]
@@ -130,6 +123,65 @@ pub(crate) enum BulletType {
     Stutter(StutterBullet),
     Wave(WaveBullet),
     Delayed(DelayedBullet),
+}
+
+pub fn config_loadout(
+    mission_params: Res<MissionParams>,
+    mut commands: Commands,
+    assets: Res<TouhouAssets>,
+    player: Single<(Entity, &mut Speed, &mut Ammo, &mut Life, &mut Collider), With<PlayerMarker>>,
+) {
+    let loadout = &mission_params.loadout;
+    let (ent, mut speed, mut ammo, mut life, mut collider) = player.into_inner();
+    let assets = &*assets;
+
+    let mut weapons = vec![];
+    let mut alt_weapons = vec![];
+
+    let mut salted = false;
+    let mut alt_salted = false;
+
+    let mut ammo_multiplier = 1.0;
+
+    for &(tech, alt) in loadout {
+        let mut weapon_vec =
+            |alt, weapon| if alt { &mut alt_weapons } else { &mut weapons }.push(weapon);
+
+        match tech {
+            Tech::MachineGun => weapon_vec(alt, make_machinegun(assets)),
+            Tech::AmmoStockpile => **ammo += 1000,
+            Tech::HeavyBody => {
+                ammo_multiplier += 0.5;
+                **life += 3;
+                collider.radius += 5.0
+            }
+            Tech::Rocket => {
+                weapon_vec(alt, make_rocketlauncher(assets));
+            }
+            Tech::MagicBullet => {
+                if alt {
+                    alt_salted = true;
+                } else {
+                    salted = true;
+                }
+            }
+            Tech::EngineT1 => **speed *= 2.0,
+            _ => {}
+        }
+    }
+
+    **ammo = (**ammo as f32 * ammo_multiplier) as u32;
+
+    commands.entity(ent).with_children(|player| {
+        for mut weapon in weapons {
+            weapon.salted = salted;
+            player.spawn(weapon);
+        }
+        for mut weapon in alt_weapons {
+            weapon.salted = alt_salted;
+            player.spawn(weapon).insert(AltFire);
+        }
+    });
 }
 
 impl Weapon {
@@ -575,7 +627,13 @@ fn resolve_delayed_bullets(
 }
 
 fn move_wave_bullets(
-    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform, &mut NormalBullet)>,
+    mut bullet_query: Query<(
+        &WaveBullet,
+        &mut Velocity,
+        &Lifetime,
+        &mut Transform,
+        &mut NormalBullet,
+    )>,
 ) {
     for (bullet, mut velocity, lifetime, mut trans, mut normal) in &mut bullet_query {
         normal.velocity =
