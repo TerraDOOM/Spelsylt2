@@ -730,7 +730,7 @@ fn circular_homing_emitter(
 }
 
 pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Res<MissionParams>) {
-    match Enemies::MoonGirl {
+    match params.enemy {
         Enemies::RedGirl => {
             let (mut em1, mut em2, mut em3) = (vec![], vec![], vec![]);
             commands
