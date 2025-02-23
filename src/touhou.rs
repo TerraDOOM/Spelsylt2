@@ -354,7 +354,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
         tentacle: asset_server.load("Enemies/Babyalien.png"),
-        lizard_sheet: asset_server.load("Enemies/Lizard-sheet.png"),
+        lizard_sheet: asset_server.load("Enemies/Lizard1-sheet.png"),
         lizard_layout: asset_server.add(TextureAtlasLayout::from_grid(
             UVec2::splat(64),
             3,

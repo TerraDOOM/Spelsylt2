@@ -558,7 +558,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Resources {
                 name: Scientists,
                 description: "A talented researcher of the near arcane".to_string(),
-                amount: 500000,
+                amount: 5,
             },
             Resources {
                 name: Engineer,
