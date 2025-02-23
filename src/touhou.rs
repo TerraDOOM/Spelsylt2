@@ -382,7 +382,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
 
-        girl_bullet_sheet: asset_server.load("bullets/GirlBullet.png"),
+        girl_bullet_sheet: asset_server.load("bullets/Girlbullet.png"),
         girl_bullet_layout: asset_server.add(TextureAtlasLayout::from_grid(
             UVec2::splat(32),
             2,
@@ -391,7 +391,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
 
-        girl_bullet2_sheet: asset_server.load("bullets/GirlBullet2.png"),
+        girl_bullet2_sheet: asset_server.load("bullets/Girlbullet2.png"),
         girl_bullet2_layout: asset_server.add(TextureAtlasLayout::from_grid(
             UVec2::splat(32),
             2,

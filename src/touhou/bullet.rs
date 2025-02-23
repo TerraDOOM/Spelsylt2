@@ -10,7 +10,7 @@ use bevy::{
     input::common_conditions::input_pressed,
     time::Stopwatch,
 };
-use enemy::{BulletSpawner, EnemyMarker, Health};
+use enemy::{AnimatedSprite, BulletSpawner, EnemyMarker, Health};
 
 use super::*;
 
@@ -318,6 +318,7 @@ pub struct BulletBundle {
     pub sprite: Sprite,
     pub velocity: Velocity,
     pub lifetime: Lifetime,
+    pub animation: AnimatedSprite,
     pub markers: (BulletMarker, TouhouMarker),
 }
 

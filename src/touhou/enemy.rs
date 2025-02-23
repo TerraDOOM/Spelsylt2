@@ -121,7 +121,7 @@ pub struct DivisiveEmitter {
     rows: u64,
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Clone, Default, Debug)]
 pub struct AnimatedSprite {
     transition_time: Timer,
     max_index: usize,
@@ -744,28 +744,43 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
     let red_girl_bullet = BulletBundle {
         collider: Collider { radius: 5.0 },
         sprite: Sprite {
-            image: assets.bullet1.clone(),
-            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            image: assets.girl_bullet_sheet.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE * 3.0)),
+            texture_atlas: Some(TextureAtlas {
+                layout: assets.girl_bullet_layout.clone(),
+                index: 0,
+            }),
             ..Default::default()
         },
+        animation: AnimatedSprite::new(0.1, 2, 0),
         ..Default::default()
     };
     let red_girl_bullet_2 = BulletBundle {
         collider: Collider { radius: 5.0 },
         sprite: Sprite {
-            image: assets.bullet1.clone(),
-            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            image: assets.girl_bullet2_sheet.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: assets.girl_bullet2_layout.clone(),
+                index: 0,
+            }),
+            custom_size: Some(Vec2::splat(BULLET_SIZE * 3.0)),
             ..Default::default()
         },
+        animation: AnimatedSprite::new(0.1, 2, 0),
         ..Default::default()
     };
     let lizard_bullet = BulletBundle {
         collider: Collider { radius: 5.0 },
         sprite: Sprite {
-            image: assets.bullet1.clone(),
-            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            image: assets.lizard_bullet_sheet.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE) * 2.0),
+            texture_atlas: Some(TextureAtlas {
+                layout: assets.lizard_bullet_layout.clone(),
+                index: 0,
+            }),
             ..Default::default()
         },
+        animation: AnimatedSprite::new(0.1, 3, 0),
         ..Default::default()
     };
     let tentacle_bullet = BulletBundle {
@@ -780,10 +795,15 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
     let moon_girl_bullet = BulletBundle {
         collider: Collider { radius: 5.0 },
         sprite: Sprite {
-            image: assets.bullet1.clone(),
-            custom_size: Some(Vec2::splat(BULLET_SIZE)),
+            image: assets.moongirl_bullet_sheet.clone(),
+            custom_size: Some(Vec2::splat(BULLET_SIZE * 2.0)),
+            texture_atlas: Some(TextureAtlas {
+                layout: assets.moongirl_layout.clone(),
+                index: 0,
+            }),
             ..Default::default()
         },
+        animation: AnimatedSprite::new(0.1, 5, 0),
         ..Default::default()
     };
 
@@ -819,8 +839,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::ZERO, 0.0),
+                                    .normal(Vec2::new(4.0, 0.0))
+                                    .rotation(Vec2::ZERO, 0.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -840,12 +860,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(red_girl_bullet_2.clone())
-                                .normal(Vec2::new(2.0, 0.0))
-                                .homing(
-                                    4.0,
-                                    TAU / 8.0,
-                                    Target::Player,
-                                ),
+                                    .normal(Vec2::new(2.0, 0.0))
+                                    .homing(4.0, TAU / 8.0, Target::Player),
                                 active: Active(false),
                             })
                             .insert(CircularHomingEmitter {
@@ -866,8 +882,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
-                                .normal(Vec2::new(2.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / 64.0),
+                                    .normal(Vec2::new(2.0, 0.0))
+                                    .rotation(Vec2::ZERO, TAU / 64.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -887,8 +903,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
-                                .normal(Vec2::new(2.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / -64.0),
+                                    .normal(Vec2::new(2.0, 0.0))
+                                    .rotation(Vec2::ZERO, TAU / -64.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -908,8 +924,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
-                                .normal(Vec2::new(2.0, 0.0))
-                                .wave(1.0, Vec2::new(2.0, 0.0)),
+                                    .normal(Vec2::new(2.0, 0.0))
+                                    .wave(1.0, Vec2::new(2.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(CircularWaveEmitter {
@@ -963,7 +979,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
@@ -985,7 +1001,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(TentacleEmitter {
@@ -1005,7 +1021,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
@@ -1064,7 +1080,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
@@ -1086,7 +1102,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(RotatingSprayEmitter {
@@ -1111,8 +1127,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::from((200.0, 0.0)), TAU / 16.0),
+                                    .normal(Vec2::new(4.0, 0.0))
+                                    .rotation(Vec2::from((200.0, 0.0)), TAU / 16.0),
                                 active: Active(false),
                             })
                             .insert(SprayEmitter {
@@ -1172,7 +1188,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(5.0, 0.0)),
+                                    .normal(Vec2::new(5.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(DivisiveEmitter {
@@ -1192,7 +1208,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(-5.0, 0.0)),
+                                    .normal(Vec2::new(-5.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(FloodEmitter { spray: TAU / 16.0 })
@@ -1209,8 +1225,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(-2.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / 64.0),
+                                    .normal(Vec2::new(-2.0, 0.0))
+                                    .rotation(Vec2::ZERO, TAU / 64.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1230,7 +1246,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0)),
+                                    .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
                             .insert(RotatingSprayEmitter {
@@ -1255,8 +1271,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / 16.0),
+                                    .normal(Vec2::new(4.0, 0.0))
+                                    .rotation(Vec2::ZERO, TAU / 16.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1276,8 +1292,8 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / -16.0),
+                                    .normal(Vec2::new(4.0, 0.0))
+                                    .rotation(Vec2::ZERO, TAU / -16.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1297,13 +1313,9 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ),
                                 },
                                 bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
-                                .normal(Vec2::new(4.0, 0.0))
-                                .stutter(1.0, Vec2::new(4.0, 0.0), false)
-                                .homing(
-                                    3.0,
-                                    TAU / 3.0,
-                                    Target::Player,
-                                ),
+                                    .normal(Vec2::new(4.0, 0.0))
+                                    .stutter(1.0, Vec2::new(4.0, 0.0), false)
+                                    .homing(3.0, TAU / 3.0, Target::Player),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
