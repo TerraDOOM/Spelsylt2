@@ -36,7 +36,7 @@ pub fn spawn_geo_hud(commands: &mut Commands, context: &XcomState) {
                     Clock,
                 ))
                 .with_child((
-                    Text::new("1985\nApr 5th\n10:49"),
+                    Text::new(time_to_date(context.time)),
                     TextFont {
                         font: context.assets.font.clone(),
                         font_size: 33.0,
