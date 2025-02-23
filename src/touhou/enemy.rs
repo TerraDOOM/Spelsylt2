@@ -1176,10 +1176,15 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             commands
                 .spawn(EnemyBundle {
                     sprite: Sprite {
-                        image: assets.lizard.clone(),
+                        image: assets.kaguya_sheet.clone(),
                         custom_size: Some(Vec2::splat(100.0)),
+                        texture_atlas: Some(TextureAtlas {
+                            layout: assets.kaguya_layout.clone(),
+                            index: 0,
+                        }),
                         ..Default::default()
                     },
+                    animation: AnimatedSprite::new(0.1, 5, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
                     health: Health(500),

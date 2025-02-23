@@ -732,7 +732,10 @@ fn on_xcom(
     mut commands: Commands,
     context: ResMut<XcomState>,
     window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
+    mut focus_state: ResMut<NextState<Focus>>,
 ) {
+    focus_state.set(Focus::Map);
+
     let width = window.resolution.width();
     let height = window.resolution.height();
 
