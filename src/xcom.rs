@@ -9,40 +9,37 @@ mod uispawner;
 use uispawner::*;
 
 pub fn xcom_plugin(app: &mut App) {
-    app.add_systems(Startup, setup);
-
-    app.add_systems(OnEnter(GameState::Xcom), on_xcom)
+    app.add_systems(Startup, setup)
+        .add_systems(OnEnter(GameState::Xcom), on_xcom)
+        .add_systems(PreUpdate, update_clock)
         .add_systems(
             Update,
             (button_system, update_scroll_position).run_if(in_state(GameState::Xcom)),
         )
         .add_systems(
             Update,
-            (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
+            (move_enemies, spawn_mission)
+                .run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
         )
         .add_systems(
             Update,
             (unequip_loadout, equip_loadout)
                 .run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
         )
-        .add_systems(OnExit(GameState::Xcom), off_xcom);
-
-    app.init_state::<Focus>();
-
-    app.add_systems(OnEnter(Focus::Science), on_science);
-    app.add_systems(OnExit(Focus::Science), off_science);
-
-    app.add_systems(OnEnter(Focus::Production), on_prod);
-    app.add_systems(OnExit(Focus::Production), off_prod);
-
-    app.add_systems(OnEnter(Focus::Mission), on_mission);
-    app.add_systems(OnExit(Focus::Mission), off_mission);
-
-    app.add_systems(OnEnter(Focus::Notice), on_notice);
-    app.add_systems(OnExit(Focus::Notice), off_notice);
-
-    app.add_systems(OnEnter(touhou::MissionState::Fail), failed_mission);
-    app.add_systems(OnEnter(touhou::MissionState::Success), suceeded_mission);
+        .add_systems(OnExit(GameState::Xcom), off_xcom)
+        .init_state::<Focus>()
+        .add_systems(OnEnter(Focus::Science), on_science)
+        .add_systems(OnExit(Focus::Science), off_science)
+        .add_systems(OnEnter(Focus::Production), on_prod)
+        .add_systems(OnExit(Focus::Production), off_prod)
+        .add_systems(OnEnter(Focus::Mission), on_mission)
+        .add_systems(OnExit(Focus::Mission), off_mission)
+        .add_systems(OnEnter(Focus::Notice), on_notice)
+        .add_systems(OnExit(Focus::Notice), off_notice)
+        .add_systems(OnEnter(touhou::MissionState::Fail), failed_mission)
+        .add_systems(OnEnter(touhou::MissionState::Success), suceeded_mission)
+        .add_event::<XcomTick>()
+        .add_event::<MissionCreated>();
 }
 
 #[derive(Component)]
@@ -421,170 +418,184 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn spawn_mission(
-    seed: usize,
-    commands: &mut Commands,
-    context: &ResMut<XcomState>,
-    x: f32,
-    y: f32,
-    phase: f32,
-) -> Option<Mission> {
-    let mission = match seed {
-        //active spawn of "next" enemy
-        0..=100 => {
-            if context
-                .finished_missions
-                .iter()
-                .find(|n| !(n.enemy == Enemies::MoonGirl && n.status == MissionStatus::Won))
-                .is_some()
-            {
-                return None;
-            } else if context
-                .finished_missions
-                .iter()
-                .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
-                .is_some()
-            {
-                Mission {
-                    id: "moon_girl_active".to_string(),
-                    name: "Final mission".to_string(),
-                    enemy: Enemies::MoonGirl,
-                    requirment: vec![],
-                    consequences: vec![],
-                    rewards: vec![],
-                    time_left: 20 * 7200,
-                    overworld_x: x,
-                    overworld_y: y,
-                    phase,
-                    status: MissionStatus::Pending,
-                }
-            } else if context
-                .finished_missions
-                .iter()
-                .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
-                .is_some()
-            {
-                Mission {
-                    id: "Tentacle_active".to_string(),
-                    name: "Alien mutant spoted".to_string(),
-                    enemy: Enemies::Tentacle,
-                    requirment: vec![],
-                    consequences: vec![],
-                    rewards: vec![],
-                    time_left: 20 * 7200,
-                    overworld_x: x,
-                    overworld_y: y,
-                    phase,
-                    status: MissionStatus::Pending,
-                }
-            } else if context
-                .finished_missions
-                .iter()
-                .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
-                .is_some()
-            {
-                Mission {
-                    id: "Lizard_active".to_string(),
-                    name: "Lizarman engages".to_string(),
-                    enemy: Enemies::Lizard,
-                    requirment: vec![],
-                    consequences: vec![],
-                    rewards: vec![],
-                    time_left: 20 * 7200,
-                    overworld_x: x,
-                    overworld_y: y,
-                    phase,
-                    status: MissionStatus::Pending,
-                }
-            } else {
-                Mission {
-                    id: "RedGirl_active".to_string(),
-                    name: "Magical girl spoted".to_string(),
-                    enemy: Enemies::Tentacle,
-                    requirment: vec![],
-                    consequences: vec![],
-                    rewards: vec![],
-                    time_left: 20 * 7200,
-                    overworld_x: x,
-                    overworld_y: y,
-                    phase,
-                    status: MissionStatus::Pending,
+    mut commands: Commands,
+
+    mut reader: EventReader<XcomTick>,
+    mut new_missions: EventWriter<MissionCreated>,
+    context: ResMut<XcomState>,
+) {
+    let mut rng = rand::rng();
+
+    for tick in reader.read() {
+        let seed = rng.random_range(0..1000);
+        let x = rng.random_range(120..800) as f32; //The x spawn range
+        let y = rng.random_range(120..500) as f32; //The y spawn range
+        let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
+
+        let mission = match seed {
+            //active spawn of "next" enemy
+            0..=100 => {
+                if context
+                    .finished_missions
+                    .iter()
+                    .find(|n| !(n.enemy == Enemies::MoonGirl && n.status == MissionStatus::Won))
+                    .is_some()
+                {
+                    return;
+                } else if context
+                    .finished_missions
+                    .iter()
+                    .find(|n| !(n.enemy == Enemies::Tentacle && n.status == MissionStatus::Won))
+                    .is_some()
+                {
+                    Mission {
+                        id: "moon_girl_active".to_string(),
+                        name: "Final mission".to_string(),
+                        enemy: Enemies::MoonGirl,
+                        requirment: vec![],
+                        consequences: vec![],
+                        rewards: vec![],
+                        time_left: 20 * 7200,
+                        overworld_x: x,
+                        overworld_y: y,
+                        phase,
+                        status: MissionStatus::Pending,
+                    }
+                } else if context
+                    .finished_missions
+                    .iter()
+                    .find(|n| !(n.enemy == Enemies::Lizard && n.status == MissionStatus::Won))
+                    .is_some()
+                {
+                    Mission {
+                        id: "Tentacle_active".to_string(),
+                        name: "Alien mutant spotted".to_string(),
+                        enemy: Enemies::Tentacle,
+                        requirment: vec![],
+                        consequences: vec![],
+                        rewards: vec![],
+                        time_left: 20 * 7200,
+                        overworld_x: x,
+                        overworld_y: y,
+                        phase,
+                        status: MissionStatus::Pending,
+                    }
+                } else if context
+                    .finished_missions
+                    .iter()
+                    .find(|n| !(n.enemy == Enemies::RedGirl && n.status == MissionStatus::Won))
+                    .is_some()
+                {
+                    Mission {
+                        id: "Lizard_active".to_string(),
+                        name: "Lizarman engages".to_string(),
+                        enemy: Enemies::Lizard,
+                        requirment: vec![],
+                        consequences: vec![],
+                        rewards: vec![],
+                        time_left: 20 * 7200,
+                        overworld_x: x,
+                        overworld_y: y,
+                        phase,
+                        status: MissionStatus::Pending,
+                    }
+                } else {
+                    Mission {
+                        id: "RedGirl_active".to_string(),
+                        name: "Magical girl spotted".to_string(),
+                        enemy: Enemies::Tentacle,
+                        requirment: vec![],
+                        consequences: vec![],
+                        rewards: vec![],
+                        time_left: 20 * 7200,
+                        overworld_x: x,
+                        overworld_y: y,
+                        phase,
+                        status: MissionStatus::Pending,
+                    }
                 }
             }
-        }
-        _ => {
-            return None;
-        }
-    };
+            _ => {
+                return;
+            }
+        };
 
-    commands.spawn((
-        Button,
-        ButtonLink(ButtonPath::MissionMenu),
-        MissionMarker(mission.clone()),
-        Node {
-            width: Val::Px(50.0),
-            height: Val::Px(50.0),
-            border: UiRect::all(Val::Px(5.0)),
-            left: Val::Px(x),
-            bottom: Val::Px(y),
-            ..default()
-        },
-        ImageNode::new(context.assets.circle.clone()),
-        ZIndex(1),
-    ));
-    Some(mission)
+        commands.spawn((
+            Button,
+            ButtonLink(ButtonPath::MissionMenu),
+            MissionMarker(mission.clone()),
+            Node {
+                width: Val::Px(50.0),
+                height: Val::Px(50.0),
+                border: UiRect::all(Val::Px(5.0)),
+                left: Val::Px(x),
+                bottom: Val::Px(y),
+                ..default()
+            },
+            ImageNode::new(context.assets.circle.clone()),
+            ZIndex(1),
+        ));
+
+        new_missions.send(MissionCreated(mission));
+    }
 }
 
 fn game_over() {}
 
 fn move_enemies(
+    mut ticks: EventReader<XcomTick>,
     mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
-    passed_time: f32,
-    mut context: &ResMut<XcomState>,
-    mut next_state: &ResMut<NextState<Focus>>,
+    time: Res<Time>,
+    mut context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
 ) {
-    for (mut node, mut mission_marker) in &mut marker_query {
-        let mission = &mut mission_marker.0;
-        let phase = mission.phase;
-        mission.overworld_x += (passed_time + phase).sin() * 5.;
-        mission.overworld_y += (passed_time + phase).cos() * 5.;
-        mission.time_left -= passed_time as isize;
-        if mission.time_left < 0 {
-            mission.status = MissionStatus::Abandonend;
-            node.display = Display::None;
-            let XcomState {
-                inventory,
-                notice_title,
-                notice_text,
-                ..
-            } = &mut *context;
-            let scientist: &mut usize = &mut inventory.get_mut(&Scientists).unwrap().amount;
+    for _ in ticks.read() {
+        let passed_time = time.delta_secs() / 10.0;
 
-            *notice_title = "Invader sucess".to_string();
-            match mission.enemy {
-                Enemies::RedGirl => {
-                    if (*scientist > 2) {
-                        *scientist -= 2;
-                        *notice_text = "The magical girl keeps rampaging across town. Many lives are lost in her pyromaniac craze. You have lost 2 scientist in the carnage".to_string();
+        for (mut node, mut mission_marker) in &mut marker_query {
+            let mission = &mut mission_marker.0;
+            let phase = mission.phase;
+            mission.overworld_x += (passed_time + phase).sin() * 5.;
+            mission.overworld_y += (passed_time + phase).cos() * 5.;
+            mission.time_left -= passed_time as isize;
+            if mission.time_left < 0 {
+                mission.status = MissionStatus::Abandonend;
+                node.display = Display::None;
+                let XcomState {
+                    inventory,
+                    notice_title,
+                    notice_text,
+                    ..
+                } = &mut *context;
+                let scientist: &mut usize = &mut inventory.get_mut(&Scientists).unwrap().amount;
+
+                *notice_title = "Invader sucess".to_string();
+                match mission.enemy {
+                    Enemies::RedGirl => {
+                        if (*scientist > 2) {
+                            *scientist -= 2;
+                            *notice_text = "The magical girl keeps rampaging across town. Many lives are lost in her pyromaniac craze. You have lost 2 scientist in the carnage".to_string();
+                            next_state.set(Focus::Notice);
+                        }
+                    }
+                    Enemies::Lizard => {
+                        if (*scientist > 2) {
+                            *scientist -= 2;
+                            *notice_text = "The lizardman manages to convert two of our finest scientist to their cause. You have lost 2 scientist in the carnage".to_string();
+                            next_state.set(Focus::Notice);
+                        }
+                    }
+                    _ => {
+                        *notice_text = "The magical girl keeps harasses, but nothing of stregic value was lost. Unrest grow".to_string();
                         next_state.set(Focus::Notice);
                     }
-                }
-                Enemies::Lizard => {
-                    if (*scientist > 2) {
-                        *scientist -= 2;
-                        *notice_text = "The lizardman manages to convert two of our finest scientist to their cause. You have lost 2 scientist in the carnage".to_string();
-                        next_state.set(Focus::Notice);
-                    }
-                }
-                _ => {
-                    *notice_text = "The magical girl keeps harasses, but nothing of stregic value was lost. Unrest grow".to_string();
-                    next_state.set(Focus::Notice);
                 }
             }
-        }
-        dbg!(mission_marker.0.time_left);
+            dbg!(mission_marker.0.time_left);
 
-        node.left = Val::Px(mission_marker.0.overworld_x);
-        node.top = Val::Px(mission_marker.0.overworld_y);
+            node.left = Val::Px(mission_marker.0.overworld_x);
+            node.top = Val::Px(mission_marker.0.overworld_y);
+        }
     }
 }
 
@@ -724,42 +735,54 @@ fn time_to_date(time: usize) -> String {
     )
 }
 
-fn update(
-    mut commands: Commands,
-    mut context: ResMut<XcomState>,
+#[derive(Event)]
+struct XcomTick;
+
+#[derive(Event)]
+struct MissionCreated(Mission);
+
+fn update_clock(
+    mut tick_writer: EventWriter<XcomTick>,
     real_time: Res<Time>,
     clock_query: Single<(&mut Children), With<Clock>>,
     mut text_query: Query<&mut Text>,
-    mut next_state: ResMut<NextState<Focus>>,
-    mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
+    mut context: ResMut<XcomState>,
 ) {
     context.timer.tick(real_time.delta());
 
     if context.timer.just_finished() {
         context.timer.reset();
-
-        let scientists: usize = context.inventory[&Scientists].amount;
-        let engineers: usize = context.inventory[&Engineer].amount;
         context.time += 30;
 
-        //Spawner
-        let mut rng = rand::thread_rng();
-        let possible_mission = spawn_mission(
-            rng.random_range(0..1000),
-            &mut commands,
-            &context,
-            rng.random_range(120..800) as f32, //The x spawn range
-            rng.random_range(120..500) as f32, //The y spawn range
-            rng.random_range(0..360) as f32,   //The complete phase randomisation
-        );
+        let mut text = text_query.get_mut(clock_query[0]).unwrap();
+        **text = time_to_date(context.time);
 
-        if let Some(mission) = possible_mission {
-            //New mission starting
-            context.notice_title = "Invader Spotted".to_string();
-            context.notice_text = "Airborne combatant spotted. Engagement is adviced. Upon ignoring the mission for too long, funding and scientists will be lost".to_string();
-            next_state.set(Focus::Notice);
-            context.timer.set_elapsed(Duration::from_secs_f32(10.));
-        }
+        tick_writer.send(XcomTick);
+    }
+}
+
+fn create_mission_notice(
+    mut mission_events: EventReader<MissionCreated>,
+    mut context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
+) {
+    for mission_event in mission_events.read() {
+        //New mission starting
+        context.notice_title = "Invader Spotted".to_string();
+        context.notice_text = "Airborne combatant spotted. Engagement is adviced. Upon ignoring the mission for too long, funding and scientists will be lost".to_string();
+        next_state.set(Focus::Notice);
+        context.timer.set_elapsed(Duration::from_secs_f32(10.));
+    }
+}
+
+fn make_techs(
+    mut ticks: EventReader<XcomTick>,
+    mut context: ResMut<XcomState>,
+    mut next_state: ResMut<NextState<Focus>>,
+) {
+    for _ in ticks.read() {
+        let scientists: usize = context.inventory[&Scientists].amount;
+        let engineers: usize = context.inventory[&Engineer].amount;
 
         let XcomState {
             selected_research,
@@ -767,30 +790,19 @@ fn update(
             notice_title,
             notice_text,
             ..
-        } = &mut **context;
+        } = &mut *context;
         if let Some(selected_research_deref) = selected_research {
             selected_research_deref.progress += scientists.clone();
             if (selected_research_deref.progress > selected_research_deref.cost) {
                 finished_research.push(selected_research_deref.clone());
                 //possible_research. (selected_research.clone()); TODO remove old tech
-                *notice_title = "Finished Research".to_string();
+                *(notice_title) = "Finished Research".to_string();
                 *notice_text = finished_research_text(selected_research_deref.id);
                 *selected_research = None;
                 next_state.set(Focus::Notice);
             }
         }
         if let Some(selected_production) = &mut context.selected_production {}
-        //dbg!(time_to_date(context.time));
-        //    if clock_query.is_some() {
-        let mut text = text_query.get_mut(clock_query[0]).unwrap();
-        **text = time_to_date(context.time);
-
-        move_enemies(
-            marker_query,
-            (context.time as f32) / 80.0,
-            &context,
-            &next_state,
-        );
     }
 }
 
