@@ -64,7 +64,7 @@ pub fn bullet_plugin(app: &mut App) {
 fn make_machinegun(assets: &TouhouAssets) -> Weapon {
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.05), TimerMode::Repeating),
-        ammo_cost: 0,
+        ammo_cost: 1,
         bullet: BulletSpawner::new(BulletBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0)
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
@@ -96,7 +96,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
 
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-        ammo_cost: 0,
+        ammo_cost: 10,
         bullet: BulletSpawner::new(bundle.clone())
             .normal(Vec2 { x: 10.0, y: 0.0 })
             .delayed(DelayedBullet {

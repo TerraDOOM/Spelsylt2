@@ -121,12 +121,13 @@ pub fn touhou_plugin(app: &mut App) {
                 make_game_camera,
                 set_mission_status,
                 play_music,
+                spawn_hud,
             )
                 .in_set(TouhouSets::EnterTouhou),
         )
         .add_systems(
             FixedUpdate,
-            (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
+            (update_invulnerability, do_movement, update_hud).in_set(TouhouSets::Gameplay),
         )
         .add_systems(
             FixedPostUpdate,
@@ -154,6 +155,45 @@ pub fn touhou_plugin(app: &mut App) {
         .add_systems(OnExit(GameState::Touhou), nuke_touhou);
 }
 
+#[derive(Component)]
+struct AmmoCount;
+#[derive(Component)]
+struct LifeCount;
+
+fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands
+        .spawn((
+            Node {
+                width: Val::Vw(20.0),
+                height: Val::Vh(15.0),
+                left: Val::Px(0.),
+                bottom: Val::Px(0.),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+            ZIndex(1),
+        ))
+        .with_child((
+            Text::new("lol"),
+            AmmoCount,
+            TextFont {
+                font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.9)),
+        ));
+}
+
+fn update_hud(
+    ammo_count: Single<&Ammo, PlayerFilter>,
+    mut ammo_text: Query<&mut Text, (With<AmmoCount>)>,
+) {
+    for mut text in &mut ammo_text {
+        **text = format!["Ammo: {}", ***ammo_count];
+    }
+}
+
 fn play_music(
     mission_params: Res<MissionParams>,
     mut commands: Commands,
@@ -166,7 +206,7 @@ fn play_music(
             ..default()
         },
         AudioPlayer::new(asset_server.load(match mission_params.enemy {
-            Enemies::RedGirl => "Music/Comabt1.ogg",
+            Enemies::RedGirl => "Music/Combat3.ogg",
             Enemies::Lizard => "Music/Combat2.ogg",
             Enemies::Tentacle => "Music/Combat3.ogg",
             Enemies::MoonGirl => "Music/Combat4.ogg",
