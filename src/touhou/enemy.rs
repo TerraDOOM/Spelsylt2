@@ -818,15 +818,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0))
                                 .rotation(Vec2::ZERO, 0.0),
                                 active: Active(false),
@@ -847,15 +839,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 10.0 },
-                                    sprite: Sprite {
-                                        image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(red_girl_bullet_2.clone())
                                 .normal(Vec2::new(2.0, 0.0))
                                 .homing(
                                     4.0,
@@ -881,15 +865,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
                                 .normal(Vec2::new(2.0, 0.0))
                                 .rotation(Vec2::ZERO, TAU / 64.0),
                                 active: Active(false),
@@ -910,15 +886,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
                                 .normal(Vec2::new(2.0, 0.0))
                                 .rotation(Vec2::ZERO, TAU / -64.0),
                                 active: Active(false),
@@ -939,15 +907,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        image: assets.bullet1.clone(),
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(red_girl_bullet.clone())
                                 .normal(Vec2::new(2.0, 0.0))
                                 .wave(1.0, Vec2::new(2.0, 0.0)),
                                 active: Active(false),
@@ -1002,15 +962,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1032,15 +984,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1060,15 +1004,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(tentacle_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1127,15 +1063,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1157,15 +1085,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1190,15 +1110,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(lizard_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0))
                                 .rotation(Vec2::from((200.0, 0.0)), TAU / 16.0),
                                 active: Active(false),
@@ -1259,15 +1171,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(5.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1287,15 +1191,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(-5.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1312,15 +1208,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(-2.0, 0.0))
                                 .rotation(Vec2::ZERO, TAU / 64.0),
                                 active: Active(false),
@@ -1341,15 +1229,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0)),
                                 active: Active(false),
                             })
@@ -1374,15 +1254,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0))
                                 .rotation(Vec2::ZERO, TAU / 16.0),
                                 active: Active(false),
@@ -1403,15 +1275,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0))
                                 .rotation(Vec2::ZERO, TAU / -16.0),
                                 active: Active(false),
@@ -1432,15 +1296,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                         TimerMode::Repeating,
                                     ),
                                 },
-                                bullet_spawner: BulletSpawner::new(BulletBundle {
-                                    collider: Collider { radius: 5.0 },
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
-                                        image: assets.bullet1.clone(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                })
+                                bullet_spawner: BulletSpawner::new(moon_girl_bullet.clone())
                                 .normal(Vec2::new(4.0, 0.0))
                                 .stutter(1.0, Vec2::new(4.0, 0.0), false)
                                 .homing(
