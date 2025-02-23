@@ -90,9 +90,22 @@ pub fn failed_mission(
     mut context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
     mut next_scene: ResMut<NextState<GameState>>,
+    mut image_query: Query<&mut Node, With<MissionMarker>>,
 ) {
     context.notice_title = "Mission Failed".to_string();
     context.notice_text = "The battle is lost. You have lost the craft and the enemy won their mission. Lost 2 scientist in budget concerns,".to_string();
+
+    let scientist: &mut usize = &mut context.inventory.get_mut(&Scientists).unwrap().amount;
+    if (*scientist > 2) {
+        *scientist -= 2;
+    } else {
+        game_over();
+    }
+
+    for mut marker_node in &mut image_query {
+        marker_node.display = Display::Flex;
+    }
+
     next_scene.set(GameState::Xcom);
     next_state.set(Focus::Notice);
 }
@@ -100,10 +113,19 @@ pub fn failed_mission(
 pub fn suceeded_mission(
     mut context: ResMut<XcomState>,
     mut next_state: ResMut<NextState<Focus>>,
+    mut commands: Commands,
     mut next_scene: ResMut<NextState<GameState>>,
+    mut image_query: Query<Entity, With<MissionMarker>>,
 ) {
     context.notice_title = "Sucessfull mission".to_string();
     context.notice_text = "The enemy yields. The magical loot will greatly increase our research efforts. Got 2 scientist".to_string();
+    let scientist: &mut usize = &mut context.inventory.get_mut(&Scientists).unwrap().amount;
+    *scientist += 2;
+
+    for mut marker_node in &mut image_query {
+        commands.entity(marker_node).despawn_recursive();
+    }
+
     next_scene.set(GameState::Xcom);
     next_state.set(Focus::Notice);
 }
@@ -462,9 +484,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Research {
                 id: Tech::EngineT2,
                 equipable: true,
-                name: "Magic fuel".to_string(),
+                name: "Ultimate fuel".to_string(),
                 description:
-                    "Using mana as a combustible mix around 10 parts pixie dust 90 parts gasoline"
+                    "Even more pixie dust in the engine seems to work. We are using 30 parts pixie dust 60 parts gasoline and 10 parts liquid hope and dreams"
                         .to_string(),
                 cost: 20,
                 prerequisites: vec![Tech::EngineT1],
@@ -497,16 +519,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 cost: 30,
                 prerequisites: vec![Tech::MagicBullet],
                 progress: 0,
-            },
-            Research {
-                id: Tech::DeterganceT1,
-                equipable: false,
-                name: "Just be chill".to_string(),
-                description: "Makes incasion less likely, TODO".to_string(),
-                cost: 20,
-                prerequisites: vec![],
-                progress: 0,
-            },
+            }
         ],
         active_missions: vec![],
         finished_missions: vec![],
@@ -573,7 +586,7 @@ fn spawn_mission(
                         requirment: vec![],
                         consequences: vec![],
                         rewards: vec![],
-                        time_left: 120,
+                        time_left: 50,
                         overworld_x: x,
                         overworld_y: y,
                         phase,
@@ -666,7 +679,9 @@ fn spawn_mission(
     }
 }
 
-fn game_over() {}
+fn game_over() {
+    println!("You lost BOZO L");
+}
 
 fn move_enemies(
     mut ticks: EventReader<XcomTick>,
@@ -702,6 +717,8 @@ fn move_enemies(
                             *scientist -= 2;
                             *notice_text = "The magical girl keeps rampaging across town. Many lives are lost in her pyromaniac craze. You have lost 2 scientist in the carnage".to_string();
                             next_state.set(Focus::Notice);
+                        } else {
+                            game_over();
                         }
                     }
                     Enemies::Lizard => {
@@ -709,6 +726,8 @@ fn move_enemies(
                             *scientist -= 2;
                             *notice_text = "The lizardman manages to convert two of our finest scientist to their cause. You have lost 2 scientist in the carnage".to_string();
                             next_state.set(Focus::Notice);
+                        } else {
+                            game_over();
                         }
                     }
                     _ => {
@@ -821,7 +840,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
         loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
         icons: HashMap::from([
-            (Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png")),
+            (Tech::HeavyBody, asset_server.load("Xcom_hud/Heavy.png")),
             (
                 Tech::MagicBullet,
                 asset_server.load("Xcom_hud/Magic_bullet.png"),
@@ -834,7 +853,9 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::DeterganceT1, asset_server.load("mascot.png")),
             (Tech::DeterganceT2, asset_server.load("mascot.png")),
             (Tech::EngineT1, asset_server.load("Xcom_hud/Fuel.png")),
+            (Tech::EngineT2, asset_server.load("Xcom_hud/Fuel1.png")),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
+            (Tech::Phase, asset_server.load("Ghost.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
         geo_music: asset_server.load("Music/Calm1.ogg"),
