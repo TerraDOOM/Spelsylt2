@@ -363,6 +363,42 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
         rocket: asset_server.load("Xcom_hud/rocket2.png"),
+
+        moongirl_bullet_sheet: asset_server.load("bullets/Moonbullet1-sheet.png"),
+        moongirl_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(32),
+            5,
+            1,
+            None,
+            None,
+        )),
+
+        lizard_bullet_sheet: asset_server.load("bullets/Lizard1_bullet-sheet.png"),
+        lizard_bullet_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(32),
+            3,
+            1,
+            None,
+            None,
+        )),
+
+        girl_bullet_sheet: asset_server.load("bullets/GirlBullet.png"),
+        girl_bullet_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(32),
+            2,
+            1,
+            None,
+            None,
+        )),
+
+        girl_bullet2_sheet: asset_server.load("bullets/GirlBullet2.png"),
+        girl_bullet2_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(32),
+            2,
+            1,
+            None,
+            None,
+        )),
     })
 }
 
@@ -377,6 +413,19 @@ pub struct TouhouAssets {
     lizard_sheet: Handle<Image>,
     lizard_layout: Handle<TextureAtlasLayout>,
     rocket: Handle<Image>,
+    girl_bullet: Handle<Image>,
+
+    moongirl_bullet_sheet: Handle<Image>,
+    moongirl_layout: Handle<TextureAtlasLayout>,
+
+    lizard_bullet_sheet: Handle<Image>,
+    lizard_bullet_layout: Handle<TextureAtlasLayout>,
+
+    girl_bullet_sheet: Handle<Image>,
+    girl_bullet_layout: Handle<TextureAtlasLayout>,
+
+    girl_bullet2_sheet: Handle<Image>,
+    girl_bullet2_layout: Handle<TextureAtlasLayout>,
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
