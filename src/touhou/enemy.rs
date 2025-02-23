@@ -24,6 +24,8 @@ pub fn enemy_plugin(app: &mut App) {
                 spray_emitter,
                 tentacle_emitter,
                 rotating_spray_emitter,
+                divisive_emitter,
+                flood_emitter,
                 advance_encounter_time,
                 process_spellcards,
             )
@@ -83,6 +85,11 @@ pub struct TentacleEmitter {
 }
 
 #[derive(Component, Default)]
+pub struct FloodEmitter {
+    spray: f32,
+}
+
+#[derive(Component, Default)]
 pub struct SprayEmitter {
     spray_width: f32,
     firing_time: f32,
@@ -99,6 +106,12 @@ pub struct RotatingSprayEmitter {
     rotation_speed: f32,
     rotation: f32,
     spray_count: usize,
+}
+
+#[derive(Component, Default)]
+pub struct DivisiveEmitter {
+    columns: u64,
+    rows: u64,
 }
 
 #[derive(Component, Default)]
@@ -288,6 +301,59 @@ impl BulletSpawner {
     }
 }
 
+fn divisive_emitter(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(
+        &Transform,
+        &mut Emitter,
+        &BulletSpawner,
+        &mut DivisiveEmitter,
+        &Active,
+    )>,
+    player: Single<&Transform, With<PlayerMarker>>,
+) {
+    let playerpos = player.into_inner();
+    for (trans, mut emitter, spawner, circ, active) in &mut query {
+        if !**active {
+            continue;
+        }
+
+        emitter.timer.tick(time.delta());
+
+        let mut bullet = spawner.bullet.clone();
+
+        if emitter.timer.finished() {
+            emitter.timer.reset();
+
+            let gap = 1920.0 / (circ.columns as f32 + 1.0);
+            for i in 0..circ.columns {
+                let mut bullet = bullet.clone();
+                bullet.transform.translation += Vec2::from((-960.0 + (gap*(i+1) as f32), 600.0)).extend(0.0);
+
+                let mut commands = commands.spawn(bullet);
+
+                if let Some(normal) = spawner.normal {
+                    let velocity = Vec2::from((0.0, -1.0)).rotate(normal.velocity);
+                    commands.add_bullet(NormalBullet { velocity });
+                }
+            }
+            let gap = 1080.0 / (circ.rows as f32 + 1.0);
+            for i in 0..circ.rows {
+                let mut bullet = bullet.clone();
+                bullet.transform.translation += Vec2::from((1000.0, -540.0 + (gap*(i+1) as f32))).extend(0.0);
+
+                let mut commands = commands.spawn(bullet);
+
+                if let Some(normal) = spawner.normal {
+                    let velocity = Vec2::from((-1.0, 0.0)).rotate(normal.velocity);
+                    commands.add_bullet(NormalBullet { velocity });
+                }
+            }
+        }
+    }
+}
+
 fn circular_rotating_emitter(
     mut commands: Commands,
     time: Res<Time>,
@@ -330,6 +396,12 @@ fn circular_rotating_emitter(
                 }
                 if let Some(mut rotating) = spawner.rotation {
                     rotating.origin += trans.translation.xy();
+                    commands.add_bullet(rotating);
+                }
+                if let Some(mut rotating) = spawner.stutter {
+                    commands.add_bullet(rotating);
+                }
+                if let Some(mut rotating) = spawner.homing {
                     commands.add_bullet(rotating);
                 }
             }
@@ -507,6 +579,51 @@ fn rotating_spray_emitter(
     }
 }
 
+fn flood_emitter(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(
+        &Transform,
+        &mut Emitter,
+        &BulletSpawner,
+        &mut FloodEmitter,
+        &Active,
+    )>,
+    player: Single<&Transform, With<PlayerMarker>>,
+    mut gizmos: Gizmos,
+) {
+    let playerpos = player.translation.xy();
+    for (trans, mut emitter, spawner, mut spray, active) in &mut query {
+        if !**active {
+            continue;
+        }
+
+        let mut rng = rand::rng();
+        emitter.timer.tick(time.delta());
+
+        let mut bullet = spawner.bullet.clone();
+
+        if emitter.timer.finished() {
+            emitter.timer.reset();
+
+            let mut bullet = bullet.clone();
+            let ang = Vec2::from_angle(
+                rng.random_range((spray.spray / -2.0)..=(spray.spray / 2.0))
+            );
+            let placement = rng.random_range(-540.0..=540.0);
+
+            bullet.transform.translation = Vec2::from((920.0, placement)).extend(0.0);
+        
+            let mut commands = commands.spawn(bullet);
+
+            if let Some(normal) = spawner.normal {
+                let velocity = ang.rotate(normal.velocity);
+                commands.add_bullet(NormalBullet { velocity });
+            }
+        }
+    }
+}
+
 fn circular_wave_emitter(
     mut commands: Commands,
     time: Res<Time>,
@@ -613,7 +730,7 @@ fn circular_homing_emitter(
 }
 
 pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Res<MissionParams>) {
-    match params.enemy {
+    match Enemies::MoonGirl {
         Enemies::RedGirl => {
             let (mut em1, mut em2, mut em3) = (vec![], vec![], vec![]);
             commands
@@ -710,7 +827,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(2.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / 16.0),
+                                .rotation(Vec2::ZERO, TAU / 64.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -738,7 +855,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                     ..Default::default()
                                 })
                                 .normal(Vec2::new(2.0, 0.0))
-                                .rotation(Vec2::ZERO, TAU / -16.0),
+                                .rotation(Vec2::ZERO, TAU / -64.0),
                                 active: Active(false),
                             })
                             .insert(CircularAimedEmitter {
@@ -1033,6 +1150,251 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                 start_time: 45.0,
                 end_time: 70.0,
             });
+        }
+        Enemies::MoonGirl => {
+            let (mut em1, mut em2, mut em3, mut em4, mut em12, mut em34) = (vec![], vec![], vec![], vec![], vec![], vec![]);
+            commands
+                .spawn(EnemyBundle {
+                    sprite: Sprite {
+                        image: assets.lizard.clone(),
+                        custom_size: Some(Vec2::splat(100.0)),
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                    collider: Collider { radius: 50.0 },
+                    health: Health(500),
+                    ..Default::default()
+                })
+                .with_children(|parent| {
+                    em1.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(0.05),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(5.0, 0.0)),
+                                active: Active(false),
+                            })
+                            .insert(DivisiveEmitter {
+                                columns: 19,
+                                rows: 11
+                            })
+                            .id(),
+                    );
+                    em2.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(0.01),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(-5.0, 0.0)),
+                                active: Active(false),
+                            })
+                            .insert(FloodEmitter {
+                                spray: TAU/16.0,
+                            })
+                            .id(),
+                    );
+                    em12.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(1.5),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(-2.0, 0.0))
+                                .rotation(Vec2::ZERO, TAU / 64.0),
+                                active: Active(false),
+                            })
+                            .insert(CircularAimedEmitter {
+                                offset: 1120.0,
+                                count: 64,
+                            })
+                            .id(),
+                    );
+                    em3.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(1.0),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(4.0, 0.0)),
+                                active: Active(false),
+                            })
+                            .insert(RotatingSprayEmitter {
+                                spray_width: TAU/4.0,
+                                firing_time: 1.0,
+                                firing_speed: 0.01,
+                                rotation_speed: TAU/8.0,
+                                rotation: 0.0,
+                                count: 0.0,
+                                spray_count: 2,
+                            })
+                            .id(),
+                    );
+                    em4.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(0.05),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(4.0, 0.0))
+                                .rotation(Vec2::ZERO, TAU/16.0),
+                                active: Active(false),
+                            })
+                            .insert(CircularAimedEmitter {
+                                offset: 50.0,
+                                count: 24,
+                            })
+                            .id(),
+                    );
+                    em4.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(0.05),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(4.0, 0.0))
+                                .rotation(Vec2::ZERO, TAU/-16.0),
+                                active: Active(false),
+                            })
+                            .insert(CircularAimedEmitter {
+                                offset: 50.0,
+                                count: 24,
+                            })
+                            .id(),
+                    );
+                    em34.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(4.0),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(4.0, 0.0))
+                                .stutter(1.0, Vec2::new(4.0, 0.0), false)
+                                .homing(3.0, TAU/3.0, Target::Player),
+                                active: Active(false),
+                            })
+                            .insert(CircularAimedEmitter {
+                                offset: 150.0,
+                                count: 32,
+                            })
+                            .id(),
+                    );
+                });
+                commands.spawn(Spellcard {
+                    emitters: em1,
+                    start_time: 0.0,
+                    end_time: 25.0,
+                });
+                commands.spawn(Spellcard {
+                    emitters: em2,
+                    start_time: 25.0,
+                    end_time: 45.0,
+                });
+                commands.spawn(Spellcard {
+                    emitters: em3,
+                    start_time: 45.0,
+                    end_time: 70.0,
+                });
+                commands.spawn(Spellcard {
+                    emitters: em4,
+                    start_time: 70.0,
+                    end_time: 100.0,
+                });
+                commands.spawn(Spellcard {
+                    emitters: em12,
+                    start_time: 0.0,
+                    end_time: 45.0,
+                });
+                commands.spawn(Spellcard {
+                    emitters: em34,
+                    start_time: 45.0,
+                    end_time: 100.0,
+                });
         }
         default => {}
     }
