@@ -218,6 +218,10 @@ pub struct XcomResources {
     pub loadout: Handle<Image>,
     pub circle: Handle<Image>,
     pub geo_music: Handle<AudioSource>,
+    pub combat1_music: Handle<AudioSource>,
+    pub combat2_music: Handle<AudioSource>,
+    pub combat3_music: Handle<AudioSource>,
+    pub combat4_music: Handle<AudioSource>,
     pub font: Handle<Font>,
 }
 
@@ -833,7 +837,11 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
-        geo_music: asset_server.load("Music/Music_InShip.ogg"),
+        geo_music: asset_server.load("Music/Calm1.ogg"),
+        combat1_music: asset_server.load("Music/Calm1.ogg"),
+        combat2_music: asset_server.load("Music/Calm1.ogg"),
+        combat3_music: asset_server.load("Music/Calm1.ogg"),
+        combat4_music: asset_server.load("Music/Calm1.ogg"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
