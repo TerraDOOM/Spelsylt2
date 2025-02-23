@@ -598,28 +598,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_flicker"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41f0f87364e4a13af80d38ec36dfeb59d96cd9ecd9740ddadf9bafd1b7f05f4e"
-dependencies = [
- "bevy_app",
- "bevy_asset",
- "bevy_color",
- "bevy_ecs",
- "bevy_hierarchy",
- "bevy_image",
- "bevy_log",
- "bevy_math",
- "bevy_pbr",
- "bevy_reflect",
- "bevy_render",
- "bevy_sprite",
- "bevy_time",
- "bevy_transform",
-]
-
-[[package]]
 name = "bevy_gilrs"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4920,7 +4898,6 @@ name = "xcom-bullet-hell"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_flicker",
  "log",
  "rand 0.9.0",
 ]
