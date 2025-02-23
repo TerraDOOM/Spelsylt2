@@ -144,7 +144,7 @@ fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
 fn nuke_touhou(
     mut commands: Commands,
     touhou_objects: Query<Entity, With<TouhouMarker>>,
-    touhou_camera: Query<Entity, With<TouhouMarker>>,
+    touhou_camera: Query<Entity, With<TouhouCamera>>,
 ) {
     for obj in &touhou_objects {
         commands.entity(obj).despawn_recursive();
