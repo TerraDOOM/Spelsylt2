@@ -614,6 +614,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     }
                 });
             //Equipment board
+
             parent
                 .spawn(Node {
                     display: Display::Flex,
@@ -652,6 +653,26 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                                 }
                             }
                         });
+
+                    parent
+                        .spawn(Node {
+                            display: Display::Flex,
+                            flex_direction: FlexDirection::Row,
+                            top: Val::Percent(10.),
+                            min_height: Val::Percent(20.0),
+                            min_width: Val::Percent(40.0),
+                            ..default()
+                        })
+                        .with_child((
+                            Text::new("Not loaded"),
+                            MissionPrompt,
+                            TextFont {
+                                font: context.assets.font.clone(),
+                                font_size: 33.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.9, 0.7, 0.9)),
+                        ));
                     parent
                         .spawn(Node {
                             min_width: Val::Percent(100.0),
