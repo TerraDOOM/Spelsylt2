@@ -90,7 +90,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
             collider: Collider { radius: 100.0 },
             sprite: Sprite {
-                image: assets.rocket,
+                image: assets.rocket.clone(),
                 custom_size: Some(Vec2::new(100.0, 100.0)),
                 ..Default::default()
             },
@@ -569,6 +569,7 @@ fn move_homing_bullets(
     time: Res<Time>,
     mut bullet_query: Query<
         (
+            &mut Sprite,
             &HomingBullet,
             &mut NormalBullet,
             &mut Velocity,
@@ -584,7 +585,7 @@ fn move_homing_bullets(
     let enemy = enemy.map(|e| e.translation);
     let player = player.map(|p| p.translation);
 
-    for (bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
+    for (mut sprite, bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
         if bullet.target == Target::Enemy && enemy.is_none() {
             log::error!("can't find enemy");
         }
@@ -603,9 +604,11 @@ fn move_homing_bullets(
                 (target_pos - trans.translation.xy()).normalize() * normal.velocity.length();
 
             let rotation = bullet.rotation_speed * time.delta_secs();
+
             gizmos.arrow_2d(trans.translation.xy(), trans.translation.xy() + angle, BLUE);
 
             normal.velocity = normal.velocity.rotate_towards(angle, rotation);
+            trans.rotation = Quat::from_rotation_z(normal.velocity.to_angle());
         }
     }
 }

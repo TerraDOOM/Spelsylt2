@@ -216,7 +216,8 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
             None,
         )),
-        tentacle: asset_server.load("Enemies\\babyalien.png"),
+        tentacle: asset_server.load("Enemies/Babyalien.png"),
+        rocket: asset_server.load("Xcom_hud/rocket2.png"),
     })
 }
 
@@ -227,6 +228,7 @@ pub struct TouhouAssets {
     kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
     tentacle: Handle<Image>,
+    rocket: Handle<Image>,
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
