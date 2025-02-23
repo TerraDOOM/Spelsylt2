@@ -108,7 +108,10 @@ pub fn touhou_plugin(app: &mut App) {
             FixedUpdate,
             (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
         )
-        .add_systems(FixedPostUpdate, (enemy_dead, last_enemy_dead))
+        .add_systems(
+            FixedPostUpdate,
+            (enemy_dead, last_enemy_dead).in_set(TouhouSets::Gameplay),
+        )
         .add_systems(
             FixedPostUpdate,
             (on_death.run_if(player_dead), on_damage)

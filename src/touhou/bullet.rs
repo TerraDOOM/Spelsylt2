@@ -79,6 +79,8 @@ fn make_cannon(mut commands: Commands, asset_server: Res<AssetServer>) {
             velocity: Vec2::new(-20.0, 0.0),
         }),
         salted: true,
+        damage: 10,
+        phasing: false,
     });
 }
 
@@ -102,6 +104,8 @@ fn make_cannon2(mut commands: Commands, asset_server: Res<AssetServer>) {
                 velocity: Vec2::new(-20.0, 0.0),
             }),
             salted: true,
+            damage: 9000,
+            phasing: true,
         })
         .insert(AltFire);
 }
@@ -113,6 +117,8 @@ pub struct Weapon {
     bullet: BulletBundle,
     bullet_type: BulletType,
     salted: bool,
+    phasing: bool,
+    damage: u32,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -138,8 +144,11 @@ impl Weapon {
 
         let mut ent = commands.spawn(bullet);
 
-        ent.insert(PlayerBullet { damage: 0 })
-            .insert_if(Salted, || self.salted);
+        ent.insert(PlayerBullet {
+            damage: self.damage,
+        })
+        .insert_if(Salted, || self.salted)
+        .insert_if(Phasing, || self.phasing);
 
         ent.add_bullet(self.bullet_type);
     }
