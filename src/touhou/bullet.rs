@@ -1,4 +1,3 @@
-use enemy::BulletSpawner;
 use std::{
     collections::HashMap,
     f32::consts::{PI, TAU},
