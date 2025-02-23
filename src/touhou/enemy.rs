@@ -1,5 +1,6 @@
 use std::{f32::consts::TAU, time::Duration};
 
+use bevy::time::Stopwatch;
 use bullet::{
     BulletBundle, BulletCommandExt, HomingBullet, NormalBullet, RotatingBullet, StutterBullet,
     WaveBullet,
@@ -9,15 +10,29 @@ use super::*;
 
 pub fn enemy_plugin(app: &mut App) {
     app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
+        .insert_resource(EncounterTime {
+            time: Stopwatch::new(),
+        })
         .add_systems(
             FixedUpdate,
-            circular_rotating_emitter.in_set(TouhouSets::Gameplay),
+            (
+                circular_rotating_emitter,
+                advance_encounter_time,
+                process_spellcards,
+            )
+                .in_set(TouhouSets::Gameplay),
         );
+}
+
+#[derive(Resource)]
+struct EncounterTime {
+    time: Stopwatch,
 }
 
 #[derive(Bundle, Default)]
 pub struct EnemyBundle {
     sprite: Sprite,
+    animation: AnimatedSprite,
     transform: Transform,
     collider: Collider,
     health: Health,
@@ -39,9 +54,74 @@ pub struct CircularAimedEmitter {
     count: usize,
 }
 
+#[derive(Component, Default)]
+pub struct AnimatedSprite {
+    transition_time: Timer,
+    max_index: usize,
+    min_index: usize,
+    index: usize,
+}
+
+pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut AnimatedSprite)>) {
+    for (mut sprite, mut animation) in &mut sprites {
+        let Some(mut atlas) = sprite.texture_atlas.as_mut() else {
+            continue;
+        };
+
+        animation.transition_time.tick(time.delta());
+        if animation.transition_time.just_finished() {
+            // atlas.
+        }
+    }
+}
+
 #[derive(Component)]
 struct Emitter {
     timer: Timer,
+}
+
+#[derive(Component, Deref, DerefMut)]
+struct Active(bool);
+
+#[derive(Component)]
+struct Spellcard {
+    emitters: Vec<Entity>,
+    start_time: f32,
+    end_time: f32,
+}
+
+fn advance_encounter_time(
+    time: Res<Time>,
+    mut enc_time: ResMut<EncounterTime>,
+    spell_cards: Query<&Spellcard>,
+) {
+    enc_time.time.tick(time.delta());
+    let current_time = enc_time.time.elapsed_secs();
+    if spell_cards.iter().all(|card| card.end_time < current_time) {
+        enc_time.time.reset();
+    }
+}
+
+fn process_spellcards(
+    enc_time: Res<EncounterTime>,
+    cards: Query<&Spellcard>,
+    mut emitters: Query<&mut Active, With<Emitter>>,
+) {
+    for mut active in &mut emitters {
+        **active = false;
+    }
+    let current_time = enc_time.time.elapsed_secs();
+
+    for card in &cards {
+        if card.start_time < current_time && current_time < card.end_time {
+            for ent in &card.emitters {
+                let Ok(mut active) = emitters.get_mut(*ent) else {
+                    continue;
+                };
+                **active = true;
+            }
+        }
+    }
 }
 
 #[derive(Bundle)]
@@ -49,6 +129,7 @@ pub struct EmitterBundle {
     emitter: Emitter,
     bullet_spawner: BulletSpawner,
     transform: Transform,
+    active: Active,
 }
 
 #[derive(Component, Clone, Default)]
@@ -69,11 +150,16 @@ fn circular_rotating_emitter(
         &mut Emitter,
         &BulletSpawner,
         &mut CircularAimedEmitter,
+        &Active,
     )>,
     player: Single<&Transform, With<PlayerMarker>>,
 ) {
     let playerpos = player.into_inner();
-    for (trans, mut emitter, spawner, circ) in &mut query {
+    for (trans, mut emitter, spawner, circ, active) in &mut query {
+        if !**active {
+            continue;
+        }
+
         emitter.timer.tick(time.delta());
 
         let mut bullet = spawner.bullet.clone();
@@ -156,6 +242,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>) {
                         }),
                         ..Default::default()
                     },
+                    active: Active(false),
                 })
                 .insert(CircularAimedEmitter {
                     offset: 150.0,
@@ -198,6 +285,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>) {
                         }),
                         ..Default::default()
                     },
+                    active: Active(false),
                 })
                 .insert(CircularAimedEmitter {
                     offset: 150.0,
