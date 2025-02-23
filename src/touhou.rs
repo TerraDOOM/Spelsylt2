@@ -178,8 +178,8 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies\\god help\\girl1.png"),
-        bullet1: asset_server.load("bullets\\help\\bullet1.png"),
+        redgirl: asset_server.load("Enemies\\godhelp\\girl1.png"),
+        bullet1: asset_server.load("bullets\\bullet1.png"),
     })
 }
 
