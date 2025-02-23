@@ -767,7 +767,7 @@ fn update(
             notice_title,
             notice_text,
             ..
-        } = &mut *context;
+        } = &mut **context;
         if let Some(selected_research_deref) = selected_research {
             selected_research_deref.progress += scientists.clone();
             if (selected_research_deref.progress > selected_research_deref.cost) {
