@@ -105,10 +105,7 @@ fn circular_rotating_emitter(
     }
 }
 
-pub fn spawn_enemy(
-    mut commands: Commands, 
-    assets: Res<TouhouAssets>,
-) {
+pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>) {
     commands
         .spawn(EnemyBundle {
             sprite: Sprite {
