@@ -455,7 +455,7 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
             }),
             ..Default::default()
         },
-        transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
+        transform: Transform::from_xyz(-1920.0 / 3.0, 0.0, 0.0),
         collider: Collider { radius: 7.5 },
         lives: Life(3),
         speed: Speed(6.5),
@@ -464,13 +464,6 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     });
 }
 
-#[allow(dead_code)]
-fn flicker_player(
-    mut commands: Commands,
-    player: Option<Single<Entity, (PlayerFilter, Added<Invulnerability>)>>,
-) {
-    todo!()
-}
 
 fn draw_gizmos(
     mut gizmos: Gizmos,
