@@ -197,7 +197,20 @@ pub fn spawn_science_hud(commands: &mut Commands, context: &XcomState) {
                         ));
 
                     for potential_research in &context.possible_research {
-                        make_science_button(option_box, potential_research, context);
+                        let mut fine = true;
+                        for prereqisite in potential_research.prerequisites.clone() {
+                            if !(context
+                                .finished_research
+                                .iter()
+                                .find(|n| n.id == prereqisite)
+                                .is_some())
+                            {
+                                fine = false;
+                            }
+                        }
+                        if fine {
+                            make_science_button(option_box, potential_research, context);
+                        }
                     }
                     /*make_science_button("Hover Magic1", ButtonPath::ScienceMenu);
                     make_science_button("Hover Magic2", ButtonPath::ScienceMenu);
@@ -711,10 +724,10 @@ fn make_icon(parent: &mut ChildBuilder, image_handler: Handle<Image>, context: &
                 width: Val::Px(64.0),
                 height: Val::Px(64.0),
                 margin: UiRect {
-                    left: Val::Px(4.0),
-                    right: Val::Px(4.0),
-                    top: Val::Px(4.0),
-                    bottom: Val::Px(4.0),
+                    left: Val::Px(2.0),
+                    right: Val::Px(2.0),
+                    top: Val::Px(2.0),
+                    bottom: Val::Px(2.0),
                 },
                 ..default_button_node()
             },

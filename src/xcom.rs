@@ -217,6 +217,7 @@ pub struct XcomResources {
     pub icons: HashMap<Tech, Handle<Image>>,
     pub loadout: Handle<Image>,
     pub circle: Handle<Image>,
+    pub geo_music: Handle<AudioSource>,
     pub font: Handle<Font>,
 }
 
@@ -450,13 +451,24 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 description:
                     "Using mana as a combustible mix around 10 parts pixie dust 90 parts gasoline"
                         .to_string(),
-                cost: 20,
+                cost: 30,
                 prerequisites: vec![],
                 progress: 0,
             },
             Research {
+                id: Tech::EngineT2,
+                equipable: true,
+                name: "Magic fuel".to_string(),
+                description:
+                    "Using mana as a combustible mix around 10 parts pixie dust 90 parts gasoline"
+                        .to_string(),
+                cost: 20,
+                prerequisites: vec![Tech::EngineT1],
+                progress: 0,
+            },
+            Research {
                 id: Tech::HeavyBody,
-                equipable: false,
+                equipable: true,
                 name: "Heavy Body".to_string(),
                 description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
                     .to_string(),
@@ -471,6 +483,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 description: "A magic bullet that negates incoming bullets".to_string(),
                 cost: 20,
                 prerequisites: vec![],
+                progress: 0,
+            },
+            Research {
+                id: Tech::Phase,
+                equipable: true,
+                name: "magic Bullet".to_string(),
+                description: "A magic bullet that negates incoming bullets".to_string(),
+                cost: 30,
+                prerequisites: vec![Tech::MagicBullet],
                 progress: 0,
             },
             Research {
@@ -722,6 +743,11 @@ fn on_xcom(
         Background,
     ));
 
+    commands.spawn((
+        AudioPlayer::new(context.assets.geo_music.clone()),
+        XcomObject,
+    ));
+
     //    spawn_mission(&mut commands, &context, 100., 100., 0.);
 
     //Map hud
@@ -807,6 +833,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
+        geo_music: asset_server.load("Music/Music_InShip.ogg"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
