@@ -633,6 +633,8 @@ fn flood_emitter(
     }
 }
 
+const BULLET_SIZE: f32 = 12.0;
+
 fn circular_wave_emitter(
     mut commands: Commands,
     time: Res<Time>,
@@ -756,7 +758,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     animation: AnimatedSprite::new(0.1, 3, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(4000),
+                    health: Health(2000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -936,7 +938,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     },
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(4000),
+                    health: Health(1500),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -953,6 +955,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -982,6 +985,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1009,6 +1013,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1058,7 +1063,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     animation: AnimatedSprite::new(0.1, 3, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(2000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -1075,6 +1080,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1104,6 +1110,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1136,6 +1143,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1187,7 +1195,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     animation: AnimatedSprite::new(0.1, 5, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
-                    health: Health(500),
+                    health: Health(5000),
                     ..Default::default()
                 })
                 .with_children(|parent| {
@@ -1204,6 +1212,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1231,6 +1240,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1255,6 +1265,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1283,6 +1294,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1315,6 +1327,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1343,6 +1356,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },
@@ -1371,6 +1385,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 bullet_spawner: BulletSpawner::new(BulletBundle {
                                     collider: Collider { radius: 5.0 },
                                     sprite: Sprite {
+                                        custom_size: Some(Vec2::splat(BULLET_SIZE)),
                                         image: assets.bullet1.clone(),
                                         ..Default::default()
                                     },

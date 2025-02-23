@@ -78,7 +78,7 @@ fn make_machinegun(assets: &TouhouAssets) -> Weapon {
         })
         .normal(Vec2::new(20.0, 0.0)),
         salted: true,
-        damage: 1,
+        damage: 2,
         phasing: false,
     }
 }
@@ -97,7 +97,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
 
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-        ammo_cost: 10,
+        ammo_cost: 100,
         bullet: BulletSpawner::new(bundle.clone())
             .normal(Vec2 { x: 10.0, y: 0.0 })
             .delayed(DelayedBullet {
@@ -108,7 +108,7 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
                 deployed: false,
             }),
         salted: false,
-        damage: 1000,
+        damage: 200,
         phasing: false,
     }
 }
@@ -408,11 +408,11 @@ struct EnemyHit {
 pub fn process_enemy_hits(
     mut commands: Commands,
     mut hits: EventReader<EnemyHit>,
-    player_bullets: Query<&PlayerBullet>,
+    player_bullets: Query<(&PlayerBullet, Option<&Phasing>)>,
     mut enemies: Query<&mut Health, With<EnemyMarker>>,
 ) {
     for &EnemyHit { enemy, bullet } in hits.read() {
-        let Ok(damage) = player_bullets.get(bullet) else {
+        let Ok((damage, phasing)) = player_bullets.get(bullet) else {
             continue;
         };
 
@@ -420,7 +420,8 @@ pub fn process_enemy_hits(
             continue;
         };
 
-        **enemy_health = enemy_health.saturating_sub(**damage);
+        **enemy_health =
+            enemy_health.saturating_sub(**damage * if phasing.is_some() { 1 } else { 2 });
 
         commands.entity(bullet).try_despawn();
     }

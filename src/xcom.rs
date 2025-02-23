@@ -631,7 +631,7 @@ fn spawn_mission(
             300..350 => Mission {
                 id: "RedGirl_active".to_string(),
                 name: "Magical girl spotted".to_string(),
-                enemy: Enemies::Tentacle,
+                enemy: Enemies::RedGirl,
                 requirment: vec![],
                 consequences: vec![],
                 rewards: vec![],

@@ -582,7 +582,7 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
             }),
             ..Default::default()
         },
-        transform: Transform::from_xyz(-1920.0 / 3.0, 0.0, 0.0),
+        transform: Transform::from_xyz(-1920.0 / 3.0, 0.0, -0.5),
         collider: Collider { radius: 7.5 },
         lives: Life(3),
         speed: Speed(6.5),
