@@ -29,11 +29,11 @@ pub fn bullet_plugin(app: &mut App) {
             (
                 check_enemy_bullets,
                 check_bullet_bullet,
-                move_normal_bullets,
+                (move_normal_bullets,
                 move_rotating_bullets,
                 move_homing_bullets,
                 move_wave_bullets,
-                move_stutter_bullets,
+                move_stutter_bullets).chain(),
                 despawn_bullets,
                 fire_weapons,
                 tick_bullets,
@@ -410,22 +410,21 @@ fn move_homing_bullets(
     let playerpos = player.into_inner();
 
     for (bullet, mut normal, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        if lifetime.0.elapsed_secs() > bullet.seeking_time {
-            continue;
-        }
+        if lifetime.0.elapsed_secs() <= bullet.seeking_time && normal.velocity.length().abs() >= 0.01 {
         let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize() * normal.velocity.length();
         let rotation = bullet.rotation_speed * time.delta_secs();
         gizmos.arrow_2d(trans.translation.xy(), trans.translation.xy() + angle, BLUE);
 
         normal.velocity = normal.velocity.rotate_towards(angle, rotation);
+        }
     }
 }
 
 fn move_stutter_bullets(
-    mut bullet_query: Query<(&mut StutterBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+    mut bullet_query: Query<(&mut StutterBullet, &mut NormalBullet, &Lifetime, &mut Transform)>,
 ) {
     for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        if lifetime.0.elapsed_secs() < bullet.wait_time {
+        if dbg!(lifetime.0.elapsed_secs()) < bullet.wait_time {
             velocity.velocity = Vec2::ZERO;
         } else if !bullet.has_started {
             velocity.velocity = bullet.initial_velocity;
@@ -438,7 +437,7 @@ fn move_wave_bullets(
     mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
 ) {
     for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        velocity.velocity = bullet.true_velocity * (lifetime.0.elapsed_secs()*bullet.sine_mod).sin();
+        velocity.velocity = bullet.true_velocity * ((lifetime.0.elapsed_secs()*bullet.sine_mod).sin() + 1.0);
     }
 }
 

@@ -3,7 +3,7 @@ use std::{f32::consts::TAU, time::Duration};
 use bevy::ecs::schedule::common_conditions;
 use bullet::{
     BulletBundle, BulletCommandExt, BulletType, HomingBullet, NormalBullet, RotatingBullet,
-    StutterBullet,
+    StutterBullet, WaveBullet,
 };
 
 use super::*;
@@ -56,6 +56,7 @@ struct BulletSpawner {
     rotation: Option<RotatingBullet>,
     stutter: Option<StutterBullet>,
     homing: Option<HomingBullet>,
+    wave: Option<WaveBullet>,
 }
 
 fn circular_aimed_emitter(
@@ -76,7 +77,6 @@ fn circular_aimed_emitter(
         bullet.transform.translation += trans.translation;
 
         if emitter.timer.finished() {
-            println!("finished???");
             emitter.timer.reset();
 
             let ang = TAU / circ.count as f32;
@@ -88,12 +88,19 @@ fn circular_aimed_emitter(
                 let mut commands = commands.spawn(bullet);
 
                 if let Some(normal) = spawner.normal {
-                    println!("bruh");
                     let velocity = dir.rotate(normal.velocity);
                     commands.add_bullet(NormalBullet { velocity });
                 }
                 if let Some(homing) = spawner.homing {
                     commands.add_bullet(homing);
+                }
+                if let Some(stutter) = spawner.stutter {
+                    let velocity = dir.rotate(stutter.initial_velocity);
+                    commands.add_bullet(StutterBullet {
+                        initial_velocity: velocity,
+                        wait_time: 2.0,
+                        has_started: false,
+                    });
                 }
             }
         }
@@ -139,6 +146,15 @@ pub fn spawn_enemy(mut commands: Commands, asset_server: Res<AssetServer>) {
                         homing: Some(HomingBullet {
                             rotation_speed: TAU / 8.0,
                             seeking_time: 5.0,
+                        }),
+                        stutter: Some(StutterBullet {
+                            wait_time: 2.0,
+                            initial_velocity: Vec2::new(5.0, 0.0),
+                            has_started: false,
+                        }),
+                        wave: Some(WaveBullet {
+                            sine_mod: 1.0,
+                            true_velocity: Vec2::new(5.0, 0.0),
                         }),
                         ..Default::default()
                     },
