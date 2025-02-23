@@ -37,6 +37,9 @@ pub fn xcom_plugin(app: &mut App) {
 
     app.add_systems(OnEnter(Focus::Mission), on_mission);
     app.add_systems(OnExit(Focus::Mission), off_mission);
+
+    app.add_systems(OnEnter(Focus::Notice), on_notice);
+    app.add_systems(OnExit(Focus::Notice), off_notice);
 }
 
 #[derive(Component)]
@@ -48,10 +51,19 @@ pub struct ProdScreen;
 pub struct MissionScreen;
 
 #[derive(Component)]
+pub struct NoticeScreen;
+
+#[derive(Component)]
 pub struct CurrentResearch;
 
 #[derive(Component, Clone)]
 pub struct Equipment(pub Tech);
+
+#[derive(Component, Clone)]
+pub struct TitleNode;
+
+#[derive(Component, Clone)]
+pub struct YappNode;
 
 pub fn on_science(
     mut science_query: Query<&mut Node, With<ScienceScreen>>,
@@ -89,6 +101,30 @@ pub fn on_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
 pub fn off_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
     for mut prod_node in &mut prod_query {
         prod_node.display = Display::None;
+    }
+}
+
+pub fn on_notice(
+    mut notice_query: Query<&mut Node, With<NoticeScreen>>,
+    mut title_query: Query<&mut Text, (With<TitleNode>, Without<YappNode>)>,
+    mut yapp_query: Query<&mut Text, (With<YappNode>, Without<TitleNode>)>,
+    context: ResMut<XcomState>,
+) {
+    for mut notice_node in &mut notice_query {
+        notice_node.display = Display::Flex;
+    }
+
+    for mut text in &mut title_query {
+        **text = context.notice_title.clone();
+    }
+    for mut text in &mut yapp_query {
+        **text = context.notice_text.clone();
+    }
+}
+
+pub fn off_notice(mut notice_query: Query<&mut Node, With<NoticeScreen>>) {
+    for mut notice_node in &mut notice_query {
+        notice_node.display = Display::None;
     }
 }
 
@@ -146,6 +182,8 @@ pub struct XcomState {
     pub loadout: HashMap<Slot, Option<Tech>>,
     pub timer: Timer,
     pub speed: usize,
+    pub notice_title: String,
+    pub notice_text: String,
 }
 
 #[repr(usize)]
@@ -176,6 +214,7 @@ pub enum Focus {
     Science,
     Production,
     Mission,
+    Notice, //Doesnt *do* anything but tells a lot
 }
 
 #[derive(Component)]
@@ -252,6 +291,9 @@ fn button_system(
                                 context.selected_research =
                                     Some(context.possible_research[i].clone());
                             }
+                            context.notice_title = "Research started".to_string();
+                            context.notice_text = "Our topmost scientist have started advancements on the technology. Progress can be se in the research tab".to_string();
+                            next_state.set(Focus::Notice);
                         }
                     }
                 }
@@ -330,6 +372,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ]),
         timer: Timer::new(Duration::from_secs_f32(0.8), TimerMode::Repeating),
         speed: 5,
+        notice_title: "".to_string(),
+        notice_text: "".to_string(),
         inventory: vec![
             Resources {
                 name: Scientists,
@@ -424,7 +468,7 @@ fn on_xcom(
         XcomObject,
     ));
 
-    spawn_mission(&mut commands, &context, 100., 100., 0.);
+    //    spawn_mission(&mut commands, &context, 100., 100., 0.);
 
     //Map hud
     spawn_geo_hud(&mut commands, &context);
@@ -437,6 +481,9 @@ fn on_xcom(
 
     //SpawnMissionHud
     spawn_mission_hud(&mut commands, &context);
+
+    //SpawnNoticeHud
+    spawn_notice_hud(&mut commands, &context);
 }
 
 fn off_xcom() {}
@@ -535,6 +582,7 @@ fn update(
     real_time: Res<Time>,
     clock_query: Single<(&mut Children), With<Clock>>,
     mut text_query: Query<&mut Text>,
+    mut next_state: ResMut<NextState<Focus>>,
     mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
 ) {
     context.timer.tick(real_time.delta());
@@ -547,7 +595,7 @@ fn update(
         context.time += 30;
 
         let mut rng = rand::thread_rng();
-        if 0 == rng.gen_range(0..20) {
+        if 0 == rng.gen_range(0..10) {
             spawn_mission(
                 &mut commands,
                 &context,
@@ -555,6 +603,10 @@ fn update(
                 rng.gen_range(120..500) as f32, //The y spawn range
                 rng.gen_range(0..360) as f32,   //The complete phase randomisation
             );
+            context.notice_title = "Invader Spotted".to_string();
+            context.notice_text = "Airborne combatant spotted. Engagement is adviced. Upon ignoring the mission for too long, funding and scientists will be lost".to_string();
+            next_state.set(Focus::Notice);
+            context.timer.set_elapsed(Duration::from_secs_f32(10.));
         }
 
         move_enemies(marker_query, (context.time as f32) / 80.0);
@@ -562,15 +614,12 @@ fn update(
         if let Some(selected_research) = &mut context.selected_research {
             selected_research.progress += scientists;
             if (selected_research.progress > selected_research.cost) {
-                //TODO popup/Notification?
+                context.notice_title = "Finished Research".to_string();
+                context.notice_text = "Finished tech, should be customized TODO".to_string();
+                next_state.set(Focus::Notice);
             }
         }
-        if let Some(selected_production) = &mut context.selected_production {
-            println!("lol");
-            //        selected_production.progress += scientists;
-            //        if (selected_production.progress > selected_production.cost) {
-            //TODO popup/Notification?
-        }
+        if let Some(selected_production) = &mut context.selected_production {}
         //dbg!(time_to_date(context.time));
         //    if clock_query.is_some() {
         let mut text = text_query.get_mut(clock_query[0]).unwrap();
