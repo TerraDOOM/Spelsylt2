@@ -9,10 +9,11 @@ use bullet::{
 use super::*;
 
 pub fn enemy_plugin(app: &mut App) {
-    app.add_systems(OnEnter(GameState::Touhou), spawn_enemy)
+    app.add_systems(OnEnter(GameState::Touhou), spawn_kaguya)
         .insert_resource(EncounterTime {
             time: Stopwatch::new(),
         })
+        .add_systems(Update, animate_sprites)
         .add_systems(
             FixedUpdate,
             (
@@ -77,6 +78,17 @@ pub struct AnimatedSprite {
     max_index: usize,
     min_index: usize,
     index: usize,
+}
+
+impl AnimatedSprite {
+    fn new(time: f32, max_index: usize, min_index: usize) -> Self {
+        AnimatedSprite {
+            transition_time: Timer::from_seconds(time, TimerMode::Repeating),
+            max_index,
+            min_index,
+            index: min_index,
+        }
+    }
 }
 
 pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut AnimatedSprite)>) {
@@ -535,5 +547,98 @@ pub fn spawn_enemy(mut commands: Commands,
             emitters: em1,
             start_time: 45.0,
             end_time: 60.0,
+        });
+}
+
+fn spawn_kaguya(mut commands: Commands, assets: Res<TouhouAssets>) {
+    const KAGUYA_SIZE: f32 = 300.0;
+
+    commands
+        .spawn(EnemyBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::splat(KAGUYA_SIZE)),
+                ..Sprite::from_atlas_image(
+                    assets.kaguya_sheet.clone(),
+                    TextureAtlas {
+                        layout: assets.kaguya_layout.clone(),
+                        index: 0,
+                    },
+                )
+            },
+            animation: AnimatedSprite::new(0.15, 5, 0),
+            transform: Transform::from_xyz(500.0, 0.0, 0.0),
+            collider: Collider::new(KAGUYA_SIZE / 2.0),
+            health: Health(500),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent
+                .spawn(EmitterBundle {
+                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                    emitter: Emitter {
+                        timer: Timer::new(Duration::from_secs_f32(0.1), TimerMode::Repeating),
+                    },
+                    bullet_spawner: BulletSpawner::new(BulletBundle {
+                        collider: Collider { radius: 5.0 },
+                        sprite: Sprite {
+                            image: assets.bullet1.clone(),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })
+                    .normal(Vec2::new(2.0, 0.0))
+                    .rotation(Vec2::ZERO, TAU / 16.0)
+                    .homing(5.0, TAU / 8.0)
+                    .stutter(2.0, Vec2::new(5.0, 0.0), false)
+                    .wave(1.0, Vec2::new(5.0, 0.0)),
+                    active: Active(false),
+                })
+                .insert(CircularAimedEmitter {
+                    offset: 150.0,
+                    count: 20,
+                });
+            parent
+                .spawn(EmitterBundle {
+                    transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                    emitter: Emitter {
+                        timer: Timer::new(Duration::from_secs_f32(0.1), TimerMode::Repeating),
+                    },
+                    bullet_spawner: BulletSpawner {
+                        bullet: BulletBundle {
+                            collider: Collider { radius: 5.0 },
+                            sprite: Sprite {
+                                image: assets.bullet1.clone(),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        normal: Some(NormalBullet {
+                            velocity: Vec2::new(2.0, 0.0),
+                        }),
+                        rotation: Some(RotatingBullet {
+                            origin: Vec2::ZERO,
+                            rotation_speed: TAU / -16.0,
+                        }),
+                        homing: Some(HomingBullet {
+                            rotation_speed: TAU / 8.0,
+                            seeking_time: 5.0,
+                        }),
+                        stutter: Some(StutterBullet {
+                            wait_time: 2.0,
+                            initial_velocity: Vec2::new(5.0, 0.0),
+                            has_started: false,
+                        }),
+                        wave: Some(WaveBullet {
+                            sine_mod: 1.0,
+                            true_velocity: Vec2::new(5.0, 0.0),
+                        }),
+                        ..Default::default()
+                    },
+                    active: Active(false),
+                })
+                .insert(CircularAimedEmitter {
+                    offset: 150.0,
+                    count: 20,
+                });
         });
 }

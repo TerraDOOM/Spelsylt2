@@ -33,6 +33,10 @@ impl Collider {
         let Self { radius } = *self;
         Circle { pos, radius }
     }
+
+    fn new(radius: f32) -> Self {
+        Self { radius }
+    }
 }
 
 #[derive(Default, Copy, Clone, Debug)]
@@ -193,14 +197,24 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies\\godhelp\\girl1.png"),
-        bullet1: asset_server.load("bullets\\bullet1.png"),
+        redgirl: asset_server.load("Enemies/godhelp/Girl1.png"),
+        bullet1: asset_server.load("bullets/bullet1.png"),
+        kaguya_sheet: asset_server.load("Enemies/Moongirl1-sheet.png"),
+        kaguya_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(128),
+            5,
+            1,
+            None,
+            None,
+        )),
     })
 }
 
 #[derive(Resource)]
 pub struct TouhouAssets {
     redgirl: Handle<Image>,
+    kaguya_sheet: Handle<Image>,
+    kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
 }
 
