@@ -624,9 +624,18 @@ fn do_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
     asset_server: ResMut<AssetServer>,
-    mut player_info: Single<(&Speed, &mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
+    mut player_info: Single<
+        (
+            &Speed,
+            &mut Transform,
+            &Collider,
+            &mut Sprite,
+            Option<&AltFire>,
+        ),
+        With<PlayerMarker>,
+    >,
 ) {
-    let (speed, mut trans, mut collider, mut sprite) = player_info.into_inner();
+    let (speed, mut trans, mut collider, mut sprite, alt_fire) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -635,7 +644,13 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * **speed;
+    let mut speed = **speed;
+
+    if alt_fire.is_some() {
+        speed = speed / 2.0;
+    }
+
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * speed;
 
     let new_pos = (trans.translation + wishdir).xy();
 
