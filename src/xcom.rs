@@ -864,7 +864,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::EngineT1, asset_server.load("Xcom_hud/Fuel.png")),
             (Tech::EngineT2, asset_server.load("Xcom_hud/Fuel1.png")),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
-            (Tech::Phase, asset_server.load("mascot.png")),
+            (Tech::Phase, asset_server.load("Ghost.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
         geo_music: asset_server.load("Music/Calm1.ogg"),
