@@ -413,7 +413,6 @@ pub struct TouhouAssets {
     lizard_sheet: Handle<Image>,
     lizard_layout: Handle<TextureAtlasLayout>,
     rocket: Handle<Image>,
-    girl_bullet: Handle<Image>,
 
     moongirl_bullet_sheet: Handle<Image>,
     moongirl_layout: Handle<TextureAtlasLayout>,

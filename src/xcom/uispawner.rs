@@ -618,7 +618,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
             parent
                 .spawn(Node {
                     display: Display::Flex,
-                    flex_direction: FlexDirection::Row,
+                    flex_direction: FlexDirection::Column,
                     min_height: Val::Percent(100.0),
                     ..default()
                 })
@@ -627,8 +627,8 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         .spawn(
                             (Node {
                                 top: Val::Percent(10.0),
-                                width: Val::Percent(40.0),
-                                height: Val::Percent(50.0),
+                                width: Val::Px(700.0),
+                                height: Val::Percent(40.0),
                                 left: Val::Px(128.0),
                                 grid_auto_flow: GridAutoFlow::Row,
                                 grid_template_rows: RepeatedGridTrack::px(3, 64.0),
@@ -658,8 +658,7 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         .spawn(Node {
                             display: Display::Flex,
                             flex_direction: FlexDirection::Row,
-                            top: Val::Percent(10.),
-                            min_height: Val::Percent(20.0),
+                            min_height: Val::Percent(10.0),
                             min_width: Val::Percent(40.0),
                             ..default()
                         })
@@ -677,9 +676,8 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                         .spawn(Node {
                             min_width: Val::Percent(100.0),
                             width: Val::Percent(100.0),
+                            top: Val::Percent(10.0),
                             height: Val::Percent(25.0),
-                            top: Val::Percent(65.0),
-                            left: -Val::Percent(50.0),
                             flex_direction: FlexDirection::Row,
                             ..default_button_node()
                         })
