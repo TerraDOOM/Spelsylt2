@@ -103,8 +103,8 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
             .delayed(DelayedBullet {
                 bullet: BulletSpawner::new(bundle)
                     .normal(Vec2::new(10.0, 0.0))
-                    .homing(60.0, TAU / 4.0, Target::Enemy),
-                delay: 0.7,
+                    .homing(60.0, TAU / 2.0, Target::Enemy),
+                delay: 0.3,
                 deployed: false,
             }),
         salted: false,
@@ -149,6 +149,9 @@ pub fn config_loadout(
     let mut salted = false;
     let mut alt_salted = false;
 
+    let mut phasing = false;
+    let mut alt_phasing = false;
+
     let mut ammo_multiplier = 1.0;
 
     for &(tech, alt) in loadout {
@@ -174,6 +177,17 @@ pub fn config_loadout(
                 }
             }
             Tech::EngineT1 => **speed *= 2.0,
+            Tech::MachineGunT2 => {
+                weapon_vec(alt, make_machinegun(assets));
+                weapon_vec(alt, make_machinegun(assets));
+            }
+            Tech::Phase => {
+                if alt {
+                    alt_phasing = true;
+                } else {
+                    phasing = true;
+                }
+            }
             _ => {}
         }
     }
@@ -183,10 +197,12 @@ pub fn config_loadout(
     commands.entity(ent).with_children(|player| {
         for mut weapon in weapons {
             weapon.salted = salted;
+            weapon.phasing = phasing;
             player.spawn(weapon);
         }
         for mut weapon in alt_weapons {
             weapon.salted = alt_salted;
+            weapon.phasing = alt_phasing;
             player.spawn(weapon).insert(AltFire);
         }
     });

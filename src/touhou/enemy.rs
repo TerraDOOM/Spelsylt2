@@ -745,10 +745,15 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             commands
                 .spawn(EnemyBundle {
                     sprite: Sprite {
-                        image: assets.redgirl.clone(),
+                        image: assets.redgirl_sheet.clone(),
                         custom_size: Some(Vec2::splat(100.0)),
+                        texture_atlas: Some(TextureAtlas {
+                            layout: assets.redgirl_layout.clone(),
+                            index: 0,
+                        }),
                         ..Default::default()
                     },
+                    animation: AnimatedSprite::new(0.1, 3, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
                     health: Health(4000),
@@ -1042,10 +1047,15 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             commands
                 .spawn(EnemyBundle {
                     sprite: Sprite {
-                        image: assets.lizard.clone(),
+                        image: assets.lizard_sheet.clone(),
                         custom_size: Some(Vec2::splat(100.0)),
+                        texture_atlas: Some(TextureAtlas {
+                            layout: assets.lizard_layout.clone(),
+                            index: 0,
+                        }),
                         ..Default::default()
                     },
+                    animation: AnimatedSprite::new(0.1, 3, 0),
                     transform: Transform::from_xyz(-200.0, 0.0, 0.0),
                     collider: Collider { radius: 50.0 },
                     health: Health(500),

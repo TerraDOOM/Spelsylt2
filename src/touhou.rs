@@ -330,7 +330,14 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies/godhelp/Girl1.png"),
+        redgirl_sheet: asset_server.load("Enemies/Girlanimation1-sheet.png"),
+        redgirl_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(64),
+            3,
+            1,
+            None,
+            None,
+        )),
         bullet1: asset_server.load("bullets/bullet1.png"),
         kaguya_sheet: asset_server.load("Enemies/Moongirl1-sheet.png"),
         kaguya_layout: asset_server.add(TextureAtlasLayout::from_grid(
@@ -341,19 +348,28 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
         tentacle: asset_server.load("Enemies/Babyalien.png"),
-        lizard: asset_server.load("Enemies/Lizard.png"),
+        lizard_sheet: asset_server.load("Enemies/Lizard.png"),
+        lizard_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(64),
+            3,
+            1,
+            None,
+            None,
+        )),
         rocket: asset_server.load("Xcom_hud/rocket2.png"),
     })
 }
 
 #[derive(Resource)]
 pub struct TouhouAssets {
-    redgirl: Handle<Image>,
+    redgirl_sheet: Handle<Image>,
+    redgirl_layout: Handle<TextureAtlasLayout>,
     kaguya_sheet: Handle<Image>,
     kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
     tentacle: Handle<Image>,
-    lizard: Handle<Image>,
+    lizard_sheet: Handle<Image>,
+    lizard_layout: Handle<TextureAtlasLayout>,
     rocket: Handle<Image>,
 }
 

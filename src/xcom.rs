@@ -585,7 +585,7 @@ fn spawn_mission(
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=200 if context.inventory[&Scientists].amount > 10 => Mission {
+            0..200 if context.inventory[&Scientists].amount > 10 => Mission {
                 id: "moon_girl_active".to_string(),
                 name: "Final mission".to_string(),
                 enemy: Enemies::MoonGirl,
@@ -598,7 +598,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            200..=250 => Mission {
+            200..250 => Mission {
                 id: "Tentacle_active".to_string(),
                 name: "Alien mutant spotted".to_string(),
                 enemy: Enemies::Tentacle,
@@ -611,7 +611,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            250..=300 => Mission {
+            250..300 => Mission {
                 id: "Lizard_active".to_string(),
                 name: "Lizarman engages".to_string(),
                 enemy: Enemies::Lizard,
@@ -624,7 +624,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            300..=350 => Mission {
+            300..350 => Mission {
                 id: "RedGirl_active".to_string(),
                 name: "Magical girl spotted".to_string(),
                 enemy: Enemies::Tentacle,
