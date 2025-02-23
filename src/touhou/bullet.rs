@@ -1,15 +1,16 @@
-use std::{f32::consts::PI, time::Duration};
+use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 use bevy::{
     color::palettes::css::{BLUE, RED},
     ecs::query::QueryFilter,
     time::Stopwatch,
 };
+use enemy::{EnemyMarker, Health};
 
 use super::*;
 
 #[derive(QueryFilter)]
-struct PlayerBullets {
+pub struct PlayerBullets {
     marker: With<BulletMarker>,
     cond: With<PlayerBullet>,
 }
@@ -27,8 +28,6 @@ pub fn bullet_plugin(app: &mut App) {
         .add_systems(
             FixedUpdate,
             (
-                check_enemy_bullets,
-                check_bullet_bullet,
                 (
                     move_normal_bullets,
                     move_rotating_bullets,
@@ -37,6 +36,9 @@ pub fn bullet_plugin(app: &mut App) {
                     move_stutter_bullets,
                 )
                     .chain(),
+                check_enemy_bullets,
+                check_bullet_bullet,
+                check_player_bullets,
                 despawn_bullets,
                 fire_weapons,
                 tick_bullets,
@@ -49,9 +51,10 @@ pub fn bullet_plugin(app: &mut App) {
         )
         .add_systems(
             FixedPostUpdate,
-            (process_player_hits, bullet_bullet_hit).run_if(in_state(GameState::Touhou)),
+            (bullet_bullet_hit, process_player_hits, process_enemy_hits)
+                .run_if(in_state(GameState::Touhou)),
         )
-        .add_systems(Startup, (add_dead));
+        .add_systems(Startup, (make_cannon, make_cannon2));
 }
 
 fn add_dead(asset_server: Res<AssetServer>) {
@@ -166,9 +169,10 @@ fn fire_weapons(
     time: Res<Time>,
     mut commands: Commands,
     mut weapons: Query<(&mut Weapon, Option<&AltFire>)>,
-    player: PlayerQ<(&Transform, Option<&AltFire>)>,
+    player: PlayerQ<(&Transform, &mut Ammo, Option<&AltFire>)>,
 ) {
-    let (trans, alt) = player.into_inner();
+    let (trans, mut ammo, alt) = player.into_inner();
+    let ammo: &mut u32 = &mut **ammo;
 
     let pos = trans.translation.xy();
     let alt_fire = alt.is_some();
@@ -183,13 +187,11 @@ fn fire_weapons(
     }
 
     let mut weapon_idx = 0;
-    let mut alt_weapon_idx = 0;
 
     for (mut weapon, is_alt) in &mut weapons {
         // we are in the wrong weapon group
         if is_alt.is_some() != alt_fire {
             continue;
-            alt_weapon_idx += 1;
         } else {
             weapon_idx += 1;
         }
@@ -197,6 +199,14 @@ fn fire_weapons(
         weapon.timer.tick(time.delta());
 
         if weapon.timer.just_finished() {
+            weapon.timer.reset();
+
+            if *ammo < weapon.ammo_cost {
+                continue;
+            }
+
+            *ammo = ammo.saturating_sub(weapon.ammo_cost);
+
             weapon.spawn_bullet(
                 &mut commands,
                 pos - Vec2 {
@@ -224,7 +234,7 @@ pub struct BulletBundle {
 #[derive(Component, Default, Clone)]
 pub struct Lifetime(Stopwatch);
 
-#[derive(Component, Default)]
+#[derive(Component, Deref, DerefMut, Default)]
 pub struct PlayerBullet {
     damage: u32,
 }
@@ -282,28 +292,70 @@ pub struct Velocity {
 pub struct AltFire;
 
 #[derive(Event)]
-struct BulletHit {
+pub struct BulletHit {
     player: Entity,
     enemy: Entity,
 }
 
-#[derive(Event)]
+#[derive(Event, Copy, Clone)]
 struct EnemyHit {
+    bullet: Entity,
     enemy: Entity,
+}
+
+pub fn process_enemy_hits(
+    mut commands: Commands,
+    mut hits: EventReader<EnemyHit>,
+    player_bullets: Query<&PlayerBullet>,
+    mut enemies: Query<&mut Health, With<EnemyMarker>>,
+) {
+    for &EnemyHit { enemy, bullet } in hits.read() {
+        let Ok(damage) = player_bullets.get(bullet) else {
+            continue;
+        };
+
+        let Ok(mut enemy_health) = enemies.get_mut(enemy) else {
+            continue;
+        };
+
+        **enemy_health = enemy_health.saturating_sub(**damage);
+
+        commands.entity(bullet).try_despawn();
+    }
 }
 
 pub fn process_player_hits(
     mut commands: Commands,
     mut hits: EventReader<PlayerHit>,
+    mut bullet_hits: EventReader<BulletHit>,
+    salted_bullets: Query<Entity, (PlayerBullets, With<Salted>)>,
     player: Option<PlayerQ<(&mut Life, Option<&Invulnerability>)>>,
 ) {
     let Some((mut life, immortal)) = player.map(|p| p.into_inner()) else {
         return;
     };
 
+    let already_collided_bullets: HashMap<_, _> = bullet_hits
+        .read()
+        .map(|hit| (hit.enemy, hit.player))
+        .collect();
+
     let mut life_lost = false;
     for PlayerHit(ent) in hits.read() {
-        commands.entity(*ent).despawn();
+        // if something else already hit this bullet
+        if let Some(&player_bullet) = already_collided_bullets.get(&ent) {
+            // ... and if that something else was salted...
+            if salted_bullets.contains(player_bullet) {
+                continue;
+            }
+        }
+
+        // try to get the bullet entity, but if it has already despawned, continue
+        let Some(mut bullet) = commands.get_entity(*ent) else {
+            continue;
+        };
+
+        bullet.try_despawn();
 
         if life_lost || immortal.is_some() {
             continue;
@@ -331,6 +383,23 @@ fn bullet_bullet_hit(
         commands.entity(*player).despawn();
         if salted.is_some() {
             commands.entity(*enemy).despawn();
+        }
+    }
+}
+
+fn check_player_bullets(
+    mut hits: EventWriter<EnemyHit>,
+    player_bullets: Query<(Entity, &Transform, &Collider), PlayerBullets>,
+    enemies: Query<(Entity, &Transform, &Collider), With<enemy::EnemyMarker>>,
+) {
+    for (bullet, b_trans, b_coll) in &player_bullets {
+        let b_circle = b_coll.to_circle(b_trans.translation.xy());
+        for (enemy, e_trans, e_coll) in &enemies {
+            let e_circle = e_coll.to_circle(e_trans.translation.xy());
+
+            if b_circle.hits(e_circle) {
+                hits.send(EnemyHit { enemy, bullet });
+            }
         }
     }
 }
@@ -459,7 +528,7 @@ fn move_stutter_bullets(
     )>,
 ) {
     for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
-        if dbg!(lifetime.0.elapsed_secs()) < bullet.wait_time {
+        if lifetime.0.elapsed_secs() < bullet.wait_time {
             velocity.velocity = Vec2::ZERO;
         } else if !bullet.has_started {
             velocity.velocity = bullet.initial_velocity;
@@ -487,7 +556,7 @@ pub trait BulletCommandExt {
     fn add_bullet<T: AsBulletKind>(&mut self, kind: T) -> &mut Self;
 }
 
-trait AsBulletKind {
+pub trait AsBulletKind {
     fn as_bullet_type(self) -> BulletType;
 }
 

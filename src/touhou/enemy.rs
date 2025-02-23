@@ -1,8 +1,8 @@
 use std::{f32::consts::TAU, time::Duration};
 
 use bullet::{
-    BulletBundle, BulletCommandExt, HomingBullet, NormalBullet, RotatingBullet,
-    StutterBullet, WaveBullet,
+    BulletBundle, BulletCommandExt, HomingBullet, NormalBullet, RotatingBullet, StutterBullet,
+    WaveBullet,
 };
 
 use super::*;
@@ -21,14 +21,17 @@ pub struct EnemyBundle {
     transform: Transform,
     collider: Collider,
     health: Health,
-    markers: (TouhouMarker, HasEmitters),
+    markers: (EnemyMarker, TouhouMarker, HasEmitters),
 }
 
 #[derive(Component, Default)]
-struct Health(usize);
+pub struct EnemyMarker;
+
+#[derive(Component, Deref, DerefMut, Default)]
+pub struct Health(u32);
 
 #[derive(Component, Default)]
-struct HasEmitters(usize);
+struct HasEmitters;
 
 #[derive(Component, Default)]
 pub struct CircularAimedEmitter {

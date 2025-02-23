@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use rand::prelude::*;
-use rand::Rng;
 use std::collections::HashMap;
 use std::time::Duration;
 use ResourceType::*;
@@ -665,14 +664,14 @@ fn update(
         let engineers: usize = context.inventory[&Engineer].amount;
         context.time += 30;
 
-        let mut rng = rand::thread_rng();
-        if 0 == rng.gen_range(0..10) {
+        let mut rng = rand::rng();
+        if 0 == rng.random_range(0..10) {
             spawn_mission(
                 &mut commands,
                 &context,
-                rng.gen_range(120..800) as f32, //The x spawn range
-                rng.gen_range(120..500) as f32, //The y spawn range
-                rng.gen_range(0..360) as f32,   //The complete phase randomisation
+                rng.random_range(120..800) as f32, //The x spawn range
+                rng.random_range(120..500) as f32, //The y spawn range
+                rng.random_range(0..360) as f32,   //The complete phase randomisation
             );
             context.notice_title = "Invader Spotted".to_string();
             context.notice_text = "Airborne combatant spotted. Engagement is adviced. Upon ignoring the mission for too long, funding and scientists will be lost".to_string();

@@ -50,6 +50,7 @@ impl Circle {
         Self { pos, radius }
     }
 
+    #[allow(dead_code)]
     fn within(&self, rect: Rect) -> bool {
         let Self { pos, radius } = *self;
 
@@ -80,8 +81,6 @@ struct GameplayRect {
 enum TouhouSets {
     EnterTouhou,
     Gameplay,
-    OnDeath,
-    ExitTouhou,
 }
 
 #[derive(Resource)]
@@ -214,11 +213,7 @@ fn make_game_camera(mut commands: Commands) {
     ));
 }
 
-fn player_immortal(player: Option<Single<Entity, (PlayerFilter, With<Invulnerability>)>>) -> bool {
-    player.is_some()
-}
-
-#[derive(Component)]
+#[derive(Component, Deref)]
 struct Invulnerability(Timer);
 
 #[derive(Bundle, Default)]
@@ -228,10 +223,14 @@ pub struct Player {
     transform: Transform,
     lives: Life,
     markers: (PlayerMarker, TouhouMarker),
+    ammo: Ammo,
 }
 
-#[derive(Component)]
+#[derive(Component, Deref)]
 pub struct Life(usize);
+
+#[derive(Component, Deref, DerefMut, Default)]
+pub struct Ammo(u32);
 
 impl Default for Life {
     fn default() -> Self {
@@ -265,6 +264,7 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     });
 }
 
+#[allow(dead_code)]
 fn flicker_player(
     mut commands: Commands,
     player: Option<Single<Entity, (PlayerFilter, Added<Invulnerability>)>>,
