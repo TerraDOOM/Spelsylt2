@@ -1,4 +1,7 @@
-use bevy::{ecs::query::QueryFilter, render::camera::ScalingMode};
+use bevy::{
+    ecs::query::QueryFilter, input::common_conditions::input_just_pressed,
+    render::camera::ScalingMode,
+};
 
 use crate::prelude::*;
 
@@ -37,6 +40,11 @@ impl Collider {
 struct Circle {
     pos: Vec2,
     radius: f32,
+}
+
+#[derive(Resource, Default)]
+struct ShowGizmos {
+    enabled: bool,
 }
 
 impl Circle {
@@ -111,6 +119,10 @@ pub fn touhou_plugin(app: &mut App) {
             .chain()
             .after(bullet::process_player_hits),
     )
+    .add_systems(
+        Update,
+        toggle_gizmos.run_if(input_just_pressed(KeyCode::Space)),
+    )
     .add_systems(Update, flicker_player)
     .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
     // set them all to only run if gamestate is touhou
@@ -118,6 +130,10 @@ pub fn touhou_plugin(app: &mut App) {
     .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
     .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
     .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+}
+
+fn toggle_gizmos(mut r: ResMut<ShowGizmos>) {
+    r.enabled = !r.enabled;
 }
 
 fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
@@ -279,8 +295,12 @@ fn flicker_player(
 fn draw_gizmos(
     mut gizmos: Gizmos,
     area: Res<GameplayRect>,
+    enabled: ResMut<ShowGizmos>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
+    if enabled.enabled {
+        return;
+    }
     use bevy::color::palettes::css::RED;
 
     gizmos.rect_2d(
