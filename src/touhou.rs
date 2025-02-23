@@ -162,11 +162,11 @@ fn play_music(
 ) {
     commands.spawn((
         AudioPlayer::new(asset_server.load(match mission_params.enemy {
-/*            Enemies::RedGirl => "Music/Calm1.ogg",
+            /*            Enemies::RedGirl => "Music/Calm1.ogg",
             Enemies::Lizard => "Music/Calm1.ogg",
             Enemies::Tentacle => "Music/Calm1.ogg",
             Enemies::MoonGirl => "Music/Calm1.ogg",*/
-            _ => "Music/Combat1.ogg",
+            _ => "Music/Comabt1.ogg",
         })),
         TouhouMarker,
     ));
@@ -465,7 +465,6 @@ pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
         ..Default::default()
     });
 }
-
 
 fn draw_gizmos(
     mut gizmos: Gizmos,
