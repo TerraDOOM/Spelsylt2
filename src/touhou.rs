@@ -2,6 +2,7 @@ use bevy::{
     ecs::query::QueryFilter, input::common_conditions::input_just_pressed,
     render::camera::ScalingMode,
 };
+use bullet::AltFire;
 use enemy::{EnemyMarker, Health};
 
 use crate::prelude::*;
@@ -121,12 +122,13 @@ pub fn touhou_plugin(app: &mut App) {
                 make_game_camera,
                 set_mission_status,
                 play_music,
+                spawn_hud,
             )
                 .in_set(TouhouSets::EnterTouhou),
         )
         .add_systems(
             FixedUpdate,
-            (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
+            (update_invulnerability, do_movement, update_hud).in_set(TouhouSets::Gameplay),
         )
         .add_systems(
             FixedPostUpdate,
@@ -152,6 +154,109 @@ pub fn touhou_plugin(app: &mut App) {
         .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
         .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
         .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+}
+
+#[derive(Component)]
+struct AmmoCount;
+#[derive(Component)]
+struct LifeCount;
+#[derive(Component)]
+struct HPBar;
+
+fn spawn_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands
+        .spawn((
+            TouhouMarker,
+            Node {
+                width: Val::Vw(20.0),
+                height: Val::Vh(10.0),
+                left: Val::Px(0.),
+                bottom: Val::Px(0.),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+            ZIndex(1),
+        ))
+        .with_child((
+            Text::new("lol"),
+            AmmoCount,
+            TextFont {
+                font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.9)),
+        ));
+
+    commands
+        .spawn((
+            TouhouMarker,
+            Node {
+                width: Val::Vw(20.0),
+                height: Val::Vh(10.0),
+                left: Val::Px(0.),
+                bottom: -Val::Vh(10.),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+            ZIndex(1),
+        ))
+        .with_child((
+            Text::new("lol"),
+            LifeCount,
+            TextFont {
+                font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.4, 0.4)),
+        ));
+
+    commands.spawn((
+        TouhouMarker,
+        Node {
+            width: Val::Vw(80.0),
+            height: Val::Vh(10.0),
+            left: Val::Vw(10.),
+            bottom: -Val::Vh(90.),
+            ..default()
+        },
+        HPBar,
+        BackgroundColor(Color::srgba(1.0, 0.0, 0.0, 0.95)),
+        ZIndex(1),
+    ));
+}
+
+fn update_hud(
+    player: Option<Single<(&Ammo, &Life), PlayerFilter>>,
+    enemy_hp: Option<Single<&Health, With<EnemyMarker>>>,
+    mut ammo_text: Query<&mut Text, (With<AmmoCount>, Without<LifeCount>)>,
+    mut hp_text: Query<&mut Text, (With<LifeCount>, Without<AmmoCount>)>,
+    mut hp_bar: Query<&mut Node, (With<HPBar>)>,
+) {
+    let Some((ammo_count, lives_count)) = player.map(|x| x.into_inner()) else {
+        return;
+    };
+    let Some(enemy_hp) = enemy_hp else {
+        return;
+    };
+    for mut text in &mut ammo_text {
+        **text = format!["Ammo: {}", **ammo_count];
+    }
+
+    for mut text in &mut hp_text {
+        **text = format!["Lives: {}", **lives_count];
+    }
+
+    for mut node in &mut hp_bar {
+        *node = Node {
+            width: Val::Vw(80. * (***enemy_hp as f32) / 4000.),
+            height: Val::Vh(10.0),
+            left: Val::Vw(10.),
+            bottom: -Val::Vh(90.),
+            ..default()
+        }
+    }
 }
 
 fn play_music(
@@ -231,7 +336,14 @@ fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
-        redgirl: asset_server.load("Enemies/godhelp/Girl1.png"),
+        redgirl_sheet: asset_server.load("Enemies/Girlanimation1-sheet.png"),
+        redgirl_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(64),
+            3,
+            1,
+            None,
+            None,
+        )),
         bullet1: asset_server.load("bullets/bullet1.png"),
         kaguya_sheet: asset_server.load("Enemies/Moongirl1-sheet.png"),
         kaguya_layout: asset_server.add(TextureAtlasLayout::from_grid(
@@ -242,19 +354,28 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
             None,
         )),
         tentacle: asset_server.load("Enemies/Babyalien.png"),
-        lizard: asset_server.load("Enemies/Lizard.png"),
+        lizard_sheet: asset_server.load("Enemies/Lizard-sheet.png"),
+        lizard_layout: asset_server.add(TextureAtlasLayout::from_grid(
+            UVec2::splat(64),
+            3,
+            1,
+            None,
+            None,
+        )),
         rocket: asset_server.load("Xcom_hud/rocket2.png"),
     })
 }
 
 #[derive(Resource)]
 pub struct TouhouAssets {
-    redgirl: Handle<Image>,
+    redgirl_sheet: Handle<Image>,
+    redgirl_layout: Handle<TextureAtlasLayout>,
     kaguya_sheet: Handle<Image>,
     kaguya_layout: Handle<TextureAtlasLayout>,
     bullet1: Handle<Image>,
     tentacle: Handle<Image>,
-    lizard: Handle<Image>,
+    lizard_sheet: Handle<Image>,
+    lizard_layout: Handle<TextureAtlasLayout>,
     rocket: Handle<Image>,
 }
 
@@ -324,7 +445,7 @@ fn make_bg(mut commands: Commands, params: Res<MissionParams>, asset_server: Res
     let map = params.map;
 
     let img = asset_server.load(match params.map {
-        Map::Day => "Bakground/Sky1side.png",
+        Map::Day => "Bakground/Sky1Side.png",
         Map::Night => "Bakground/Nightsky.png",
         Map::Dusk => "Bakground/sunset.png",
         Map::Moon => "Bakground/moon.png",
@@ -504,9 +625,18 @@ fn do_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
     asset_server: ResMut<AssetServer>,
-    mut player_info: Single<(&Speed, &mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
+    mut player_info: Single<
+        (
+            &Speed,
+            &mut Transform,
+            &Collider,
+            &mut Sprite,
+            Option<&AltFire>,
+        ),
+        With<PlayerMarker>,
+    >,
 ) {
-    let (speed, mut trans, mut collider, mut sprite) = player_info.into_inner();
+    let (speed, mut trans, mut collider, mut sprite, alt_fire) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -515,7 +645,13 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * **speed;
+    let mut speed = **speed;
+
+    if alt_fire.is_some() {
+        speed = speed / 2.0;
+    }
+
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * speed;
 
     let new_pos = (trans.translation + wishdir).xy();
 

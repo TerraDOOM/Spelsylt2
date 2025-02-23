@@ -311,7 +311,7 @@ struct LoadoutIcon;
 #[derive(Component, Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct ScienceSelect(pub Tech);
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct MissionMarker(Mission);
 
 fn button_system(
@@ -321,6 +321,7 @@ fn button_system(
             &mut ImageNode,
             &ButtonLink,
             Option<&ScienceSelect>,
+            Option<&MissionMarker>,
         ),
         (Changed<Interaction>, With<Button>),
     >,
@@ -329,7 +330,8 @@ fn button_system(
     mut next_state: ResMut<NextState<Focus>>,
     mut next_scene: ResMut<NextState<GameState>>,
 ) {
-    for (interaction, mut sprite, link, potential_tech) in &mut interaction_query {
+    for (interaction, mut sprite, link, potential_tech, potential_mission) in &mut interaction_query
+    {
         match *interaction {
             Interaction::Pressed => {
                 if link.0 != ButtonPath::MissionMenu {
@@ -349,10 +351,21 @@ fn button_system(
                     }
                     ButtonPath::MissionMenu => {
                         next_state.set(Focus::Mission);
+                        log::info!("setting mission params, mission: {:#?}", potential_mission);
+
+                        *mission_params = MissionParams {
+                            loadout: vec![],
+                            enemy: potential_mission.unwrap().0.enemy,
+                            map: match ((context.time as f32 / 60.) % 24.) {
+                                7.0..=15.0 => Map::Day,
+                                15.0..=23.0 => Map::Dusk,
+                                _ => Map::Night,
+                            },
+                        };
                     }
 
                     ButtonPath::StartMission => {
-                        println!("Starting a Mission!");
+                        log::info!("Starting a Mission! {:#?}", potential_mission);
                         let mut loadout = vec![];
 
                         for (key, value) in &context.loadout {
@@ -367,15 +380,8 @@ fn button_system(
                             }
                         }
 
-                        *mission_params = MissionParams {
-                            loadout,
-                            enemy: Enemies::RedGirl,
-                            map: match ((context.time as f32 / 60.) % 24.) {
-                                7.0..=15.0 => Map::Day,
-                                15.0..=23.0 => Map::Dusk,
-                                _ => Map::Night,
-                            },
-                        };
+                        mission_params.loadout = loadout;
+
                         next_scene.set(GameState::Touhou);
                     }
 
@@ -583,7 +589,7 @@ fn spawn_mission(
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=200 if context.inventory[&Scientists].amount > 10 => Mission {
+            0..200 if context.inventory[&Scientists].amount > 10 => Mission {
                 id: "moon_girl_active".to_string(),
                 name: "Final mission".to_string(),
                 enemy: Enemies::MoonGirl,
@@ -596,7 +602,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            200..=250 => Mission {
+            200..250 => Mission {
                 id: "Tentacle_active".to_string(),
                 name: "Alien mutant spotted".to_string(),
                 enemy: Enemies::Tentacle,
@@ -609,7 +615,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            250..=300 => Mission {
+            250..300 => Mission {
                 id: "Lizard_active".to_string(),
                 name: "Lizarman engages".to_string(),
                 enemy: Enemies::Lizard,
@@ -622,7 +628,7 @@ fn spawn_mission(
                 phase,
                 status: MissionStatus::Pending,
             },
-            300..=350 => Mission {
+            300..350 => Mission {
                 id: "RedGirl_active".to_string(),
                 name: "Magical girl spotted".to_string(),
                 enemy: Enemies::Tentacle,
@@ -640,6 +646,8 @@ fn spawn_mission(
                 return;
             }
         };
+
+        log::info!("Spawning mission {:?}", mission);
 
         commands.spawn((
             Button,
@@ -730,7 +738,10 @@ fn on_xcom(
     mut commands: Commands,
     context: ResMut<XcomState>,
     window: Single<&mut Window, With<bevy::window::PrimaryWindow>>,
+    mut focus_state: ResMut<NextState<Focus>>,
 ) {
+    focus_state.set(Focus::Map);
+
     let width = window.resolution.width();
     let height = window.resolution.height();
 

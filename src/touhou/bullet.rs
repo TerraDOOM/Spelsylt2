@@ -65,7 +65,7 @@ pub fn bullet_plugin(app: &mut App) {
 fn make_machinegun(assets: &TouhouAssets) -> Weapon {
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.05), TimerMode::Repeating),
-        ammo_cost: 0,
+        ammo_cost: 1,
         bullet: BulletSpawner::new(BulletBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0)
                 .with_rotation(Quat::from_rotation_z(PI / 2.0)),
@@ -97,14 +97,14 @@ fn make_rocketlauncher(assets: &TouhouAssets) -> Weapon {
 
     Weapon {
         timer: Timer::new(Duration::from_secs_f32(0.5), TimerMode::Repeating),
-        ammo_cost: 0,
+        ammo_cost: 10,
         bullet: BulletSpawner::new(bundle.clone())
             .normal(Vec2 { x: 10.0, y: 0.0 })
             .delayed(DelayedBullet {
                 bullet: BulletSpawner::new(bundle)
                     .normal(Vec2::new(10.0, 0.0))
-                    .homing(60.0, TAU / 4.0, Target::Enemy),
-                delay: 0.7,
+                    .homing(60.0, TAU / 2.0, Target::Enemy),
+                delay: 0.3,
                 deployed: false,
             }),
         salted: false,
@@ -149,6 +149,9 @@ pub fn config_loadout(
     let mut salted = false;
     let mut alt_salted = false;
 
+    let mut phasing = false;
+    let mut alt_phasing = false;
+
     let mut ammo_multiplier = 1.0;
     let mut damage_multiplier = 1.0;
 
@@ -176,6 +179,17 @@ pub fn config_loadout(
             }
             Tech::EngineT1 => **speed *= 2.0,
             Tech::EngineT2 => {**speed *= 4.0; damage_multiplier += 0.5;}
+            Tech::MachineGunT2 => {
+                weapon_vec(alt, make_machinegun(assets));
+                weapon_vec(alt, make_machinegun(assets));
+            }
+            Tech::Phase => {
+                if alt {
+                    alt_phasing = true;
+                } else {
+                    phasing = true;
+                }
+            }
             _ => {}
         }
     }
@@ -185,12 +199,10 @@ pub fn config_loadout(
     commands.entity(ent).with_children(|player| {
         for mut weapon in weapons {
             weapon.salted = salted;
-            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon);
         }
         for mut weapon in alt_weapons {
             weapon.salted = alt_salted;
-            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon).insert(AltFire);
         }
     });
