@@ -382,9 +382,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             name: "Heavy Body".to_string(),
             description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
                 .to_string(),
-            cost: 50,
+            cost: 20 * 7200,
             prerequisites: vec![],
-            progress: 50,
+            progress: 0,
         }],
         active_missions: vec![],
         selected_research: None,
@@ -433,10 +433,11 @@ fn spawn_mission(
         requirment: vec![],
         consequences: vec![],
         rewards: vec![],
-        time_left: 20000 * 40,
+        time_left: 20 * 7200,
         overworld_x: x,
         overworld_y: y,
         phase,
+        status: MissionStatus::Pending,
     };
     commands.spawn((
         Button,
@@ -461,10 +462,12 @@ fn move_enemies(
     passed_time: f32,
 ) {
     for (mut node, mut mission_marker) in &mut marker_query {
-        let phase = mission_marker.0.phase;
-        mission_marker.0.overworld_x += (passed_time + phase).sin() * 5.;
-        mission_marker.0.overworld_y += (passed_time + phase).cos() * 5.;
-        mission_marker.0.time_left -= passed_time as usize;
+        let mission = &mut mission_marker.0;
+        let phase = mission.phase;
+        mission.overworld_x += (passed_time + phase).sin() * 5.;
+        mission.overworld_y += (passed_time + phase).cos() * 5.;
+        mission.time_left -= passed_time as isize;
+        if mission.time_left < 0 {}
         dbg!(mission_marker.0.time_left);
 
         node.left = Val::Px(mission_marker.0.overworld_x);
@@ -516,6 +519,8 @@ fn off_xcom(mut commands: Commands, xcom_objects: Query<Entity, With<XcomObject>
     for obj in &xcom_objects {
         commands.entity(obj).despawn_recursive();
     }
+
+    //    MissionMarker TODO make mission markers disapear
 }
 
 fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {

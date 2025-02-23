@@ -7,8 +7,9 @@ pub struct Mission {
     pub enemy: String,
     pub requirment: Vec<String>,
     pub consequences: Vec<String>,
+    pub status: MissionStatus,
     pub rewards: Vec<String>,
-    pub time_left: usize,
+    pub time_left: isize,
     pub overworld_x: f32,
     pub overworld_y: f32,
     pub phase: f32,
@@ -29,6 +30,15 @@ pub struct Resources {
     pub name: ResourceType,
     pub description: String,
     pub amount: usize,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum MissionStatus {
+    Pending,
+    Lost,
+    Won,
+    Abandonend,
 }
 
 #[repr(usize)]
