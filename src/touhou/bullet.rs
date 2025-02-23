@@ -150,6 +150,7 @@ pub fn config_loadout(
     let mut alt_salted = false;
 
     let mut ammo_multiplier = 1.0;
+    let mut damage_multiplier = 1.0;
 
     for &(tech, alt) in loadout {
         let mut weapon_vec =
@@ -174,6 +175,7 @@ pub fn config_loadout(
                 }
             }
             Tech::EngineT1 => **speed *= 2.0,
+            Tech::EngineT2 => {**speed *= 4.0; damage_multiplier += 0.5;}
             _ => {}
         }
     }
@@ -183,10 +185,12 @@ pub fn config_loadout(
     commands.entity(ent).with_children(|player| {
         for mut weapon in weapons {
             weapon.salted = salted;
+            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon);
         }
         for mut weapon in alt_weapons {
             weapon.salted = alt_salted;
+            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon).insert(AltFire);
         }
     });
