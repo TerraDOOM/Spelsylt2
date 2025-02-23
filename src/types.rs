@@ -21,7 +21,7 @@ pub struct Research {
     pub name: String,
     pub description: String,
     pub cost: usize,
-    pub prerequisites: Vec<String>,
+    pub prerequisites: Vec<Tech>,
     pub progress: usize,
     pub equipable: bool,
 }
@@ -84,7 +84,7 @@ pub enum Tech {
 
 #[derive(Resource)]
 pub struct MissionParams {
-    pub loadout: Vec<Tech>,
+    pub loadout: Vec<(Tech, bool)>,
     pub enemy: Enemies,
     pub map: Map,
     //    pub mission: Mission,

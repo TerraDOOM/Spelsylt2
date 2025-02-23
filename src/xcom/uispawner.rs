@@ -495,46 +495,106 @@ pub fn spawn_mission_hud(commands: &mut Commands, context: &XcomState) {
                     ImageNode::new(context.assets.loadout.clone()),
                 ))
                 .with_children(|ship_box| {
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::AmmoStockpile].clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(0.0),
-                        Slot::Front,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.button_green.clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(32.0),
-                        Slot::Core1,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.button_green.clone(),
-                        context,
-                        Val::Px(0.0),
-                        Val::Px(64.0),
-                        Slot::Engine,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::MachineGun].clone(),
-                        context,
-                        Val::Px(-96.0),
-                        Val::Px(-32.0),
-                        Slot::LeftWing1,
-                    );
-                    make_ship_icon(
-                        ship_box,
-                        context.assets.icons[&Tech::MachineGun].clone(),
-                        context,
-                        Val::Px(96.0),
-                        Val::Px(-96.0),
-                        Slot::RightWing1,
-                    );
+                    //An if only for the assets. I wanna die..
+                    if let Some(tech) = context.loadout[&Slot::Front] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(0.0),
+                            Slot::Front,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(0.0),
+                            Slot::Front,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::Core1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(32.0),
+                            Slot::Core1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(32.0),
+                            Slot::Core1,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::Engine] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(64.0),
+                            Slot::Engine,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(0.0),
+                            Val::Px(64.0),
+                            Slot::Engine,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::LeftWing1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(-96.0),
+                            Val::Px(-32.0),
+                            Slot::LeftWing1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(-96.0),
+                            Val::Px(-32.0),
+                            Slot::LeftWing1,
+                        );
+                    }
+
+                    if let Some(tech) = context.loadout[&Slot::RightWing1] {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.icons[&tech].clone(),
+                            context,
+                            Val::Px(96.0),
+                            Val::Px(-96.0),
+                            Slot::RightWing1,
+                        );
+                    } else {
+                        make_ship_icon(
+                            ship_box,
+                            context.assets.button_green.clone(),
+                            context,
+                            Val::Px(96.0),
+                            Val::Px(-96.0),
+                            Slot::RightWing1,
+                        );
+                    }
                 });
             //Equipment board
             parent

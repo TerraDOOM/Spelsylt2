@@ -327,14 +327,18 @@ fn button_system(
 
                         for (key, value) in &context.loadout {
                             if let Some(value) = value {
-                                loadout.push(value.clone());
+                                loadout.push((value.clone(), true));
                             }
                         }
 
                         *mission_params = MissionParams {
                             loadout,
                             enemy: Enemies::RedGirl,
-                            map: Map::Day,
+                            map: match ((context.time as f32 / 60.) % 24.) {
+                                7.0..=15.0 => Map::Day,
+                                15.0..=23.0 => Map::Dusk,
+                                _ => Map::Night,
+                            },
                         };
                         next_scene.set(GameState::Touhou);
                     }
@@ -440,7 +444,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 description:
                     "Using mana as a combustible mix around 10 parts pixie dust 90 parts gasoline"
                         .to_string(),
-                cost: 20 * 3600,
+                cost: 20,
                 prerequisites: vec![],
                 progress: 0,
             },
@@ -450,7 +454,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 name: "Heavy Body".to_string(),
                 description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
                     .to_string(),
-                cost: 20 * 7200,
+                cost: 20,
                 prerequisites: vec![],
                 progress: 0,
             },
@@ -468,7 +472,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 equipable: false,
                 name: "Just be chill".to_string(),
                 description: "Makes incasion less likely, TODO".to_string(),
-                cost: 20 * 7200,
+                cost: 20,
                 prerequisites: vec![],
                 progress: 0,
             },
@@ -523,7 +527,7 @@ fn spawn_mission(
         let phase = rng.random_range(0..360) as f32; //The complete phase randomisation
         let mission = match seed {
             //active spawn of "next" enemy
-            0..=300 => {
+            0..=100 => {
                 if (context
                     .finished_missions
                     .iter()
@@ -538,7 +542,7 @@ fn spawn_mission(
                         requirment: vec![],
                         consequences: vec![],
                         rewards: vec![],
-                        time_left: 20 * 7200,
+                        time_left: 120,
                         overworld_x: x,
                         overworld_y: y,
                         phase,
@@ -790,7 +794,7 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
             (Tech::AmmoStockpile, asset_server.load("Xcom_hud/Ammo.png")),
             (Tech::DeterganceT1, asset_server.load("mascot.png")),
             (Tech::DeterganceT2, asset_server.load("mascot.png")),
-            (Tech::EngineT1, asset_server.load("mascot.png")),
+            (Tech::EngineT1, asset_server.load("Xcom_hud/Fuel.png")),
             (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
         ]),
         circle: asset_server.load("Enemies/Redcirle.png"),
@@ -918,6 +922,7 @@ fn make_techs(
             let XcomState {
                 selected_research,
                 finished_research,
+                possible_research,
                 notice_title,
                 notice_text,
                 ..
@@ -931,6 +936,13 @@ fn make_techs(
                     finished_research.push(selected_research_deref.clone());
                     *(notice_title) = "Finished Research".to_string();
                     *notice_text = selected_research_deref.description.clone();
+
+                    if let Some(i) = possible_research
+                        .iter()
+                        .position(|n| n.id == selected_research_deref.id)
+                    {
+                        possible_research.remove(i);
+                    }
                     *selected_research = None;
 
                     next_state.set(Focus::Notice);
