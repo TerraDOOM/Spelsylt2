@@ -38,6 +38,7 @@ pub fn bullet_plugin(app: &mut App) {
                     move_homing_bullets,
                     move_wave_bullets,
                     move_stutter_bullets,
+                    resolve_delayed_bullets
                 )
                     .chain(),
                 check_enemy_bullets,
@@ -619,7 +620,7 @@ fn resolve_delayed_bullets(
     for (entity, mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
         if lifetime.0.elapsed_secs() >= bullet.delay && !bullet.deployed {
             bullet.deployed = true;
-            if bullet.bullet.homing.is_some() {}
+            bullet.bullet.clone().add_components(&mut commands.entity(entity));
         }
     }
 }

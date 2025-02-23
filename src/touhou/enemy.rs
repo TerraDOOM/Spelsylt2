@@ -22,6 +22,7 @@ pub fn enemy_plugin(app: &mut App) {
                 circular_homing_emitter,
                 circular_wave_emitter,
                 spray_emitter,
+                tentacle_emitter,
                 advance_encounter_time,
                 process_spellcards,
             )
@@ -75,10 +76,17 @@ pub struct CircularWaveEmitter {
 }
 
 #[derive(Component, Default)]
+pub struct TentacleEmitter {
+    offset: f32,
+    count: usize,
+}
+
+#[derive(Component, Default)]
 pub struct SprayEmitter {
     spray_width: f32,
     firing_time: f32,
     firing_speed: f32,
+    count: f32,
 }
 
 #[derive(Component, Default)]
@@ -305,6 +313,66 @@ fn circular_rotating_emitter(
     }
 }
 
+fn tentacle_emitter(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(
+        &Transform,
+        &mut Emitter,
+        &BulletSpawner,
+        &mut TentacleEmitter,
+        &Active,
+    )>,
+    player: Single<&Transform, With<PlayerMarker>>,
+) {
+    let playerpos = player.into_inner();
+    for (trans, mut emitter, spawner, circ, active) in &mut query {
+        if !**active {
+            continue;
+        }
+
+        emitter.timer.tick(time.delta());
+
+        let mut bullet = spawner.bullet.clone();
+
+        bullet.transform.translation += trans.translation;
+
+        if emitter.timer.finished() {
+            emitter.timer.reset();
+
+            let ang = TAU / circ.count as f32;
+            for i in 0..circ.count {
+                let mut bullet = bullet.clone();
+                let dir = Vec2::from_angle(ang * i as f32);
+                bullet.transform.translation += (dir * circ.offset).extend(0.0);
+                let player_dir = playerpos.translation.xy() - bullet.transform.translation.xy();
+
+                let mut commands = commands.spawn(bullet);
+
+                if let Some(normal) = spawner.normal {
+                    let velocity = dir.rotate(normal.velocity);
+                    commands.add_bullet(NormalBullet { velocity });
+                }
+                let mut delayed_spawner = BulletSpawner::new(BulletBundle {
+                    collider: Collider { radius: 5.0 },
+                    sprite: Sprite {
+                        image: spawner.bullet.sprite.image.clone(),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .homing(1.0, TAU);
+                let delayed: DelayedBullet = DelayedBullet {
+                    bullet: delayed_spawner,
+                    delay: 1.0,
+                    deployed: false,
+                };
+                commands.add_bullet(delayed);
+            }
+        }
+    }
+}
+
 fn spray_emitter(
     mut commands: Commands,
     time: Res<Time>,
@@ -331,16 +399,21 @@ fn spray_emitter(
         bullet.transform.translation += trans.translation;
 
         if emitter.timer.elapsed_secs() < spray.firing_time {
-            let ang = Vec2::from_angle(
-                rng.random_range((spray.spray_width / -2.0)..=(spray.spray_width / 2.0)),
-            );
-
-            let mut commands = commands.spawn(bullet);
-
-            if let Some(normal) = spawner.normal {
-                let velocity = ang.rotate(normal.velocity);
-                commands.add_bullet(NormalBullet { velocity });
-            }
+            spray.count += (time.delta().as_secs_f32() / spray.firing_speed);
+            for _ in 0..(spray.count as u64) {
+                let mut bullet = bullet.clone();
+                let ang = Vec2::from_angle(
+                    rng.random_range((spray.spray_width / -2.0)..=(spray.spray_width / 2.0)),
+                );
+    
+                let mut commands = commands.spawn(bullet);
+    
+                if let Some(normal) = spawner.normal {
+                    let velocity = ang.rotate(normal.velocity);
+                    commands.add_bullet(NormalBullet { velocity });
+                }
+                spray.count -= 1.0;
+            };
         }
 
         if emitter.timer.finished() {
@@ -646,7 +719,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     ..Default::default()
                 })
                 .with_children(|parent| {
-                    em1.push(
+                    em2.push(
                         parent
                             .spawn(EmitterBundle {
                                 transform: Transform::from_xyz(-200.0, 0.0, 0.0),
@@ -671,6 +744,34 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                                 spray_width: TAU,
                                 firing_time: 5.0,
                                 firing_speed: 0.05,
+                                count: 0.0,
+                            })
+                            .id(),
+                    );
+                    em1.push(
+                        parent
+                            .spawn(EmitterBundle {
+                                transform: Transform::from_xyz(-200.0, 0.0, 0.0),
+                                emitter: Emitter {
+                                    timer: Timer::new(
+                                        Duration::from_secs_f32(0.05),
+                                        TimerMode::Repeating,
+                                    ),
+                                },
+                                bullet_spawner: BulletSpawner::new(BulletBundle {
+                                    collider: Collider { radius: 5.0 },
+                                    sprite: Sprite {
+                                        image: assets.bullet1.clone(),
+                                        ..Default::default()
+                                    },
+                                    ..Default::default()
+                                })
+                                .normal(Vec2::new(4.0, 0.0)),
+                                active: Active(false),
+                            })
+                            .insert(TentacleEmitter {
+                                offset: 100.0,
+                                count: 4,
                             })
                             .id(),
                     );
