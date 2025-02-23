@@ -9,9 +9,9 @@ use crate::prelude::*;
 mod bullet;
 mod enemy;
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Clone, Default, Debug)]
 struct TouhouMarker;
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug)]
 struct PlayerMarker;
 #[derive(Component, Default)]
 struct TouhouCamera;
@@ -195,6 +195,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(TouhouAssets {
         redgirl: asset_server.load("Enemies\\godhelp\\girl1.png"),
         bullet1: asset_server.load("bullets\\bullet1.png"),
+        tentacle: asset_server.load("Enemies\\babyalien.png")
     })
 }
 
@@ -202,6 +203,7 @@ fn load_touhou_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub struct TouhouAssets {
     redgirl: Handle<Image>,
     bullet1: Handle<Image>,
+    tentacle: Handle<Image>,
 }
 
 fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {

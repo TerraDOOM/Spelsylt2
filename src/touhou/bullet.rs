@@ -1,4 +1,5 @@
 use std::{collections::HashMap, f32::consts::PI, time::Duration};
+use enemy::BulletSpawner;
 
 use bevy::{
     color::palettes::css::{BLUE, RED},
@@ -121,13 +122,14 @@ pub struct Weapon {
     damage: u32,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum BulletType {
     Normal(NormalBullet),
     Rotating(RotatingBullet),
     Homing(HomingBullet),
     Stutter(StutterBullet),
     Wave(WaveBullet),
+    Delayed(DelayedBullet),
 }
 
 impl Weapon {
@@ -150,7 +152,7 @@ impl Weapon {
         .insert_if(Salted, || self.salted)
         .insert_if(Phasing, || self.phasing);
 
-        ent.add_bullet(self.bullet_type);
+        ent.add_bullet(self.bullet_type.clone());
     }
 }
 
@@ -227,10 +229,10 @@ fn fire_weapons(
     }
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Debug)]
 pub struct BulletMarker;
 
-#[derive(Bundle, Default, Clone)]
+#[derive(Bundle, Default, Clone, Debug)]
 pub struct BulletBundle {
     pub transform: Transform,
     pub collider: Collider,
@@ -240,7 +242,7 @@ pub struct BulletBundle {
     pub markers: (BulletMarker, TouhouMarker),
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Debug)]
 pub struct Lifetime(Stopwatch);
 
 #[derive(Component, Deref, DerefMut, Default)]
@@ -270,6 +272,13 @@ pub struct StutterBullet {
 pub struct WaveBullet {
     pub true_velocity: Vec2,
     pub sine_mod: f32,
+}
+
+#[derive(Component, Clone, Default, Debug)]
+pub struct DelayedBullet {
+    pub bullet: BulletSpawner,
+    pub delay: f32,
+    pub deployed: bool,
 }
 
 #[derive(Debug, Copy, Clone, Component)]
@@ -546,6 +555,25 @@ fn move_stutter_bullets(
     }
 }
 
+fn resolve_delayed_bullets(
+    mut commands: Commands,
+    mut bullet_query: Query<(
+        Entity,
+        &mut DelayedBullet,
+        &mut NormalBullet,
+        &Lifetime,
+        &mut Transform,
+    )>,
+) {
+    for (entity, mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() >= bullet.delay && !bullet.deployed {
+            bullet.deployed = true;
+            if bullet.bullet.homing.is_some() {
+            }
+        }
+    }
+}
+
 fn move_wave_bullets(
     mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform, &mut NormalBullet)>,
 ) {
@@ -599,6 +627,12 @@ impl AsBulletKind for WaveBullet {
     }
 }
 
+impl AsBulletKind for DelayedBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Delayed(self)
+    }
+}
+
 impl AsBulletKind for BulletType {
     fn as_bullet_type(self) -> BulletType {
         self
@@ -615,6 +649,7 @@ impl BulletCommandExt for EntityCommands<'_> {
             BulletType::Homing(homing) => self.insert(homing),
             BulletType::Stutter(stutter) => self.insert(stutter),
             BulletType::Wave(wave) => self.insert(wave),
+            BulletType::Delayed(delayed) => self.insert(delayed),
         }
     }
 }
