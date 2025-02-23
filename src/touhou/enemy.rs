@@ -143,6 +143,63 @@ struct BulletSpawner {
     wave: Option<WaveBullet>,
 }
 
+impl BulletSpawner {
+    fn new(bullet: BulletBundle) -> Self {
+        Self {
+            bullet,
+            ..Default::default()
+        }
+    }
+
+    fn normal(self, velocity: Vec2) -> Self {
+        Self {
+            normal: Some(NormalBullet { velocity }),
+            ..self
+        }
+    }
+
+    fn rotation(self, origin: Vec2, rotation_speed: f32) -> Self {
+        Self {
+            rotation: Some(RotatingBullet {
+                origin,
+                rotation_speed,
+            }),
+            ..self
+        }
+    }
+
+    fn homing(self, seeking_time: f32, rotation_speed: f32) -> Self {
+        Self {
+            homing: Some(HomingBullet {
+                seeking_time,
+                rotation_speed,
+            }),
+            ..self
+        }
+    }
+
+    fn stutter(self, wait_time: f32, initial_velocity: Vec2, has_started: bool) -> Self {
+        Self {
+            stutter: Some(StutterBullet {
+                wait_time,
+                initial_velocity,
+                has_started,
+            }),
+            ..self
+        }
+    }
+
+    fn wave(self, sine_mod: f32, true_velocity: Vec2) -> Self {
+        Self {
+            wave: Some(WaveBullet {
+                sine_mod,
+                true_velocity,
+            }),
+            ..self
+        }
+    }
+}
+
 fn circular_rotating_emitter(
     mut commands: Commands,
     time: Res<Time>,
@@ -212,37 +269,19 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>) {
                     emitter: Emitter {
                         timer: Timer::new(Duration::from_secs_f32(0.1), TimerMode::Repeating),
                     },
-                    bullet_spawner: BulletSpawner {
-                        bullet: BulletBundle {
-                            collider: Collider { radius: 5.0 },
-                            sprite: Sprite {
-                                image: assets.bullet1.clone(),
-                                ..Default::default()
-                            },
+                    bullet_spawner: BulletSpawner::new(BulletBundle {
+                        collider: Collider { radius: 5.0 },
+                        sprite: Sprite {
+                            image: assets.bullet1.clone(),
                             ..Default::default()
                         },
-                        normal: Some(NormalBullet {
-                            velocity: Vec2::new(2.0, 0.0),
-                        }),
-                        rotation: Some(RotatingBullet {
-                            origin: Vec2::ZERO,
-                            rotation_speed: TAU / 16.0,
-                        }),
-                        homing: Some(HomingBullet {
-                            rotation_speed: TAU / 8.0,
-                            seeking_time: 5.0,
-                        }),
-                        stutter: Some(StutterBullet {
-                            wait_time: 2.0,
-                            initial_velocity: Vec2::new(5.0, 0.0),
-                            has_started: false,
-                        }),
-                        wave: Some(WaveBullet {
-                            sine_mod: 1.0,
-                            true_velocity: Vec2::new(5.0, 0.0),
-                        }),
                         ..Default::default()
-                    },
+                    })
+                    .normal(Vec2::new(2.0, 0.0))
+                    .rotation(Vec2::ZERO, TAU / 16.0)
+                    .homing(5.0, TAU / 8.0)
+                    .stutter(2.0, Vec2::new(5.0, 0.0), false)
+                    .wave(1.0, Vec2::new(5.0, 0.0)),
                     active: Active(false),
                 })
                 .insert(CircularAimedEmitter {
