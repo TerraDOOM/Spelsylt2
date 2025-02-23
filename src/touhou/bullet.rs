@@ -1,6 +1,24 @@
 use std::{f32::consts::PI, time::Duration};
 
+use bevy::{
+    color::palettes::css::{BLUE, RED},
+    ecs::query::QueryFilter,
+    time::Stopwatch,
+};
+
 use super::*;
+
+#[derive(QueryFilter)]
+struct PlayerBullets {
+    marker: With<BulletMarker>,
+    cond: With<PlayerBullet>,
+}
+#[derive(QueryFilter)]
+struct EnemyBullets {
+    marker: With<BulletMarker>,
+    cond: Without<PlayerBullet>,
+}
+type Bullets = With<BulletMarker>;
 
 pub fn bullet_plugin(app: &mut App) {
     app.add_event::<BulletHit>()
@@ -11,26 +29,21 @@ pub fn bullet_plugin(app: &mut App) {
             (
                 check_enemy_bullets,
                 check_bullet_bullet,
-                move_bullets,
+                move_normal_bullets,
+                move_rotating_bullets,
                 despawn_bullets,
-                bullet_spawner,
                 fire_weapons,
+                tick_bullets,
             )
-                .run_if(in_state(GameState::Touhou)),
+                .in_set(TouhouSets::Gameplay),
         )
-        .add_systems(
-            FixedPreUpdate,
-            set_alt_fire.run_if(in_state(GameState::Touhou)),
-        )
+        .add_systems(FixedPreUpdate, set_alt_fire.in_set(TouhouSets::Gameplay))
         .add_systems(
             FixedPostUpdate,
-            (player_hits, bullet_bullet_hit).run_if(in_state(GameState::Touhou)),
+            (player_hits.run_if(not(player_immortal)), bullet_bullet_hit)
+                .in_set(TouhouSets::Gameplay),
         )
-        .add_systems(Startup, (add_dead, make_cannon, make_cannon2));
-}
-
-fn add_dead(asset_server: Res<AssetServer>) {
-    let _: Handle<Image> = asset_server.load("dead.png");
+        .add_systems(Startup, (make_cannon, make_cannon, make_cannon2));
 }
 
 fn make_cannon(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -45,12 +58,12 @@ fn make_cannon(mut commands: Commands, asset_server: Res<AssetServer>) {
                 image: asset_server.load("bullets/bullet1.png"),
                 ..Default::default()
             },
-            bullet: Bullet {
-                velocity: Vec2::new(-20.0, 0.0),
-            },
             ..Default::default()
         },
-        salted: true,
+        bullet_type: BulletType::Normal(NormalBullet {
+            velocity: Vec2::new(-20.0, 0.0),
+        }),
+        salted: false,
     });
 }
 
@@ -68,44 +81,14 @@ fn make_cannon2(mut commands: Commands, asset_server: Res<AssetServer>) {
                     custom_size: Some(Vec2::new(100.0, 100.0)),
                     ..Default::default()
                 },
-                bullet: Bullet {
-                    velocity: Vec2::new(-20.0, 0.0),
-                },
                 ..Default::default()
             },
+            bullet_type: BulletType::Normal(NormalBullet {
+                velocity: Vec2::new(-20.0, 0.0),
+            }),
             salted: true,
         })
         .insert(AltFire);
-}
-
-fn bullet_spawner(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut time_since_last: Local<f32>,
-    player: PlayerQ<&Transform>,
-    asset_server: Res<AssetServer>,
-) {
-    let start_pos = Vec2::new(0.0, 1000.0);
-    let player_pos = player.into_inner().translation.xy();
-
-    if *time_since_last > 1.0 {
-        commands.spawn(BulletBundle {
-            transform: Transform::from_xyz(0.0, 1000.0, 0.0),
-            collider: Collider { radius: 10.0 },
-            sprite: Sprite {
-                image: asset_server.load("mascot.png"),
-                custom_size: Some(Vec2::splat(30.0)),
-                ..Default::default()
-            },
-            bullet: Bullet {
-                velocity: (player_pos - start_pos).normalize() * 5.0,
-            },
-            ..Default::default()
-        });
-        *time_since_last = 0.0;
-    } else {
-        *time_since_last += time.delta_secs();
-    }
 }
 
 #[derive(Component)]
@@ -113,13 +96,24 @@ pub struct Weapon {
     timer: Timer,
     ammo_cost: u32,
     bullet: BulletBundle,
+    bullet_type: BulletType,
     salted: bool,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum BulletType {
+    Normal(NormalBullet),
+    Rotating(RotatingBullet),
+    Homing(HomingBullet),
+    Stutter(StutterBullet),
+    Wave(WaveBullet),
+}
+
 impl Weapon {
-    fn spawn_bullet(&mut self, player_pos: Vec2) -> BulletBundle {
+    fn spawn_bullet(&mut self, commands: &mut Commands, player_pos: Vec2) {
         self.timer.reset();
-        let new_bullet = BulletBundle {
+
+        let bullet = BulletBundle {
             transform: Transform {
                 translation: player_pos.extend(0.0) + self.bullet.transform.translation,
                 ..self.bullet.transform
@@ -127,7 +121,12 @@ impl Weapon {
             ..self.bullet.clone()
         };
 
-        new_bullet
+        let mut ent = commands.spawn(bullet);
+
+        ent.insert(PlayerBullet { damage: 0 })
+            .insert_if(Salted, || self.salted);
+
+        ent.add_bullet(self.bullet_type);
     }
 }
 
@@ -144,9 +143,9 @@ fn set_alt_fire(
             weapon.timer.reset();
         }
     }
-    if input.just_pressed(KeyCode::ShiftLeft) {
+    if input.pressed(KeyCode::ShiftLeft) {
         player.insert(AltFire);
-    } else if input.just_released(KeyCode::ShiftLeft) {
+    } else {
         player.remove::<AltFire>();
     }
 }
@@ -161,49 +160,96 @@ fn fire_weapons(
 
     let pos = trans.translation.xy();
     let alt_fire = alt.is_some();
+    let (mut weapon_count, mut alt_weapon_count) = (0, 0);
+
+    for (weapon, is_alt) in &mut weapons {
+        if is_alt.is_some() != alt_fire {
+            alt_weapon_count += 1;
+        } else {
+            weapon_count += 1;
+        }
+    }
+
+    let mut weapon_idx = 0;
+    let mut alt_weapon_idx = 0;
 
     for (mut weapon, is_alt) in &mut weapons {
-        weapon.timer.tick(time.delta());
-
         // we are in the wrong weapon group
         if is_alt.is_some() != alt_fire {
             continue;
+            alt_weapon_idx += 1;
+        } else {
+            weapon_idx += 1;
         }
 
+        weapon.timer.tick(time.delta());
+
         if weapon.timer.just_finished() {
-            let bullet = weapon.spawn_bullet(pos);
-            commands
-                .spawn(bullet)
-                .insert(PlayerBullet { damage: 0 })
-                .insert_if(Salted, || weapon.salted);
+            weapon.spawn_bullet(
+                &mut commands,
+                pos - Vec2 {
+                    x: 0.0,
+                    y: (((weapon_idx - 1) * 50) - (25 * (weapon_count - 1))) as f32,
+                },
+            )
         }
     }
 }
 
+#[derive(Component, Default, Clone)]
+pub struct BulletMarker;
+
 #[derive(Bundle, Default, Clone)]
 pub struct BulletBundle {
-    transform: Transform,
-    collider: Collider,
-    sprite: Sprite,
-    bullet: Bullet,
-    markers: TouhouMarker,
+    pub transform: Transform,
+    pub collider: Collider,
+    pub sprite: Sprite,
+    pub velocity: Velocity,
+    pub lifetime: Lifetime,
+    pub markers: (BulletMarker, TouhouMarker),
 }
+
+#[derive(Component, Default, Clone)]
+pub struct Lifetime(Stopwatch);
 
 #[derive(Component, Default)]
 pub struct PlayerBullet {
     damage: u32,
 }
 
-#[derive(Component, Clone, Default)]
-pub struct Bullet {
-    velocity: Vec2,
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct NormalBullet {
+    pub velocity: Vec2,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct HomingBullet {
+    pub rotation_speed: f32,
+    pub seeking_time: f32,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct StutterBullet {
+    pub wait_time: f32,
+    pub initial_velocity: Vec2,
+    pub has_started: bool,
+}
+
+#[derive(Component, Clone, Copy, Default, Debug)]
+pub struct WaveBullet {
+    pub true_velocity: Vec2,
+    pub sine_mod: f32,
+}
+
+#[derive(Debug, Copy, Clone, Component)]
+pub struct RotatingBullet {
+    pub origin: Vec2,
+    // rotation speed in radians/s
+    pub rotation_speed: f32,
 }
 
 fn circle(t: &Transform, c: &Collider) -> Circle {
-    Circle {
-        pos: t.translation.xy(),
-        radius: c.radius,
-    }
+    super::Circle::new(c.radius, t.translation.xy())
 }
 
 #[derive(Component, Default)]
@@ -214,6 +260,11 @@ pub struct Phasing;
 
 #[derive(Event)]
 pub struct PlayerHit(Entity);
+
+#[derive(Debug, Clone, Component, Default)]
+pub struct Velocity {
+    velocity: Vec2,
+}
 
 #[derive(Component)]
 pub struct AltFire;
@@ -229,16 +280,21 @@ struct EnemyHit {
     enemy: Entity,
 }
 
-fn player_hits(
+pub fn player_hits(
     mut commands: Commands,
     mut hits: EventReader<PlayerHit>,
-    player: PlayerQ<&mut Sprite>,
-    asset_server: Res<AssetServer>,
+    player: PlayerQ<&mut Life>,
 ) {
-    let mut sprite = player.into_inner();
+    let mut lives = player.into_inner();
+
+    let mut took_damage = false;
 
     for PlayerHit(ent) in hits.read() {
-        sprite.image = asset_server.load("dead.png");
+        log::info!("Got hit!!");
+        if !took_damage {
+            lives.0 = lives.0.saturating_sub(1);
+            took_damage = true;
+        }
         commands.entity(*ent).despawn();
     }
 }
@@ -246,8 +302,8 @@ fn player_hits(
 fn bullet_bullet_hit(
     mut commands: Commands,
     mut hits: EventReader<BulletHit>,
-    player_bullets: Query<(&Bullet, Option<&Salted>), (With<PlayerBullet>)>,
-    enemy_bullets: Query<(&Bullet), Without<PlayerBullet>>,
+    player_bullets: Query<(&NormalBullet, Option<&Salted>), PlayerBullets>,
+    enemy_bullets: Query<&NormalBullet, EnemyBullets>,
 ) {
     for BulletHit { player, enemy } in hits.read() {
         let Ok((p, salted)) = player_bullets.get(*player) else {
@@ -257,25 +313,22 @@ fn bullet_bullet_hit(
             continue;
         };
 
-        commands.entity(*player).despawn();
+        commands.entity(*player).try_despawn();
         if salted.is_some() {
-            commands.entity(*enemy).despawn();
+            commands.entity(*enemy).try_despawn();
         }
     }
 }
 
 fn check_bullet_bullet(
     mut hits: EventWriter<BulletHit>,
-    player_bullets: Query<
-        (Entity, &Transform, &Collider, &Bullet),
-        (With<PlayerBullet>, Without<Phasing>),
-    >,
-    enemy_bullets: Query<(Entity, &Transform, &Collider, &Bullet), Without<PlayerBullet>>,
+    player_bullets: Query<(Entity, &Transform, &Collider), (PlayerBullets, Without<Phasing>)>,
+    enemy_bullets: Query<(Entity, &Transform, &Collider), EnemyBullets>,
 ) {
-    for (p, p_trans, p_coll, _) in &player_bullets {
+    for (p, p_trans, p_coll) in &player_bullets {
         let player_circle = circle(p_trans, p_coll);
 
-        for (e, e_trans, e_coll, _) in &enemy_bullets {
+        for (e, e_trans, e_coll) in &enemy_bullets {
             let enemy_circle = circle(e_trans, e_coll);
 
             if player_circle.hits(enemy_circle) {
@@ -290,7 +343,7 @@ fn check_bullet_bullet(
 
 fn check_enemy_bullets(
     player: PlayerQ<(&Transform, &Collider)>,
-    bullet_query: Query<(Entity, &Transform, &Collider), (With<Bullet>, Without<PlayerBullet>)>,
+    bullet_query: Query<(Entity, &Transform, &Collider), EnemyBullets>,
     mut hit_writer: EventWriter<PlayerHit>,
 ) {
     let player_circle = {
@@ -302,6 +355,8 @@ fn check_enemy_bullets(
         let bullet_circle = circle(trans, coll);
 
         if bullet_circle.hits(player_circle) {
+            log::info!("found player hit");
+
             hit_writer.send(PlayerHit(ent));
         }
     }
@@ -309,17 +364,144 @@ fn check_enemy_bullets(
 
 fn despawn_bullets(
     mut commands: Commands,
-    bullet_query: Query<(Entity, &Transform), (With<Bullet>, Without<PlayerMarker>)>,
+    bullet_query: Query<(Entity, &Transform, &Lifetime), EnemyBullets>,
 ) {
-    for (entity, transform) in &bullet_query {
-        if !Rect::new(-4000.0, -4000.0, 4000.0, 4000.0).contains(transform.translation.xy()) {
+    for (entity, transform, lifetime) in &bullet_query {
+        if !Rect::new(-1000.0, -1000.0, 1000.0, 1000.0).contains(transform.translation.xy()) {
+            commands.entity(entity).despawn()
+        }
+        if lifetime.0.elapsed_secs() > 30.0 {
             commands.entity(entity).despawn()
         }
     }
 }
 
-fn move_bullets(mut bullet_query: Query<(&mut Bullet, &mut Transform)>) {
-    for (mut bullet, mut transform) in &mut bullet_query {
+fn move_normal_bullets(mut bullet_query: Query<(&NormalBullet, &mut Transform)>) {
+    for (bullet, mut transform) in &mut bullet_query {
         transform.translation += bullet.velocity.extend(0.0);
+    }
+}
+
+fn move_rotating_bullets(
+    time: Res<Time>,
+    mut bullet_query: Query<(&RotatingBullet, Option<&mut NormalBullet>, &mut Transform)>,
+    mut gizmos: Gizmos,
+) {
+    for (bullet, normal, mut trans) in &mut bullet_query {
+        let prev_pos = trans.translation.xy();
+
+        let pos_mod = prev_pos - bullet.origin;
+
+        gizmos.cross_2d(Isometry2d::from_translation(bullet.origin), 20.0, RED);
+
+        let angle = bullet.rotation_speed * time.delta_secs();
+
+        let rotated = Vec2::from_angle(angle).rotate(pos_mod);
+
+        let new_pos = rotated + bullet.origin;
+
+        if let Some(mut normal) = normal {
+            normal.velocity = Vec2::from_angle(angle).rotate(normal.velocity);
+        }
+
+        trans.translation = new_pos.extend(0.0);
+    }
+}
+
+fn move_homing_bullets(
+    time: Res<Time>,
+    mut bullet_query: Query<(&HomingBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+    player: PlayerQ<&Transform>,
+) {
+    let playerpos = player.into_inner();
+
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() > bullet.seeking_time {
+            continue;
+        }
+        let angle = (playerpos.translation.xy() - trans.translation.xy()).normalize();
+        let rotation = bullet.rotation_speed * time.delta_secs();
+
+        velocity.velocity = velocity.velocity.rotate_towards(angle, rotation);
+    }
+}
+
+fn move_stutter_bullets(
+    mut bullet_query: Query<(&mut StutterBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (mut bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        if lifetime.0.elapsed_secs() < bullet.wait_time {
+            velocity.velocity = Vec2::ZERO;
+        } else if !bullet.has_started {
+            velocity.velocity = bullet.initial_velocity;
+            bullet.has_started = true;
+        }
+    }
+}
+
+fn move_wave_bullets(
+    mut bullet_query: Query<(&WaveBullet, &mut Velocity, &Lifetime, &mut Transform)>,
+) {
+    for (bullet, mut velocity, lifetime, mut trans) in &mut bullet_query {
+        velocity.velocity =
+            bullet.true_velocity * (lifetime.0.elapsed_secs() * bullet.sine_mod).sin();
+    }
+}
+
+fn tick_bullets(time: Res<Time>, mut bullets: Query<&mut Lifetime, Bullets>) {
+    for mut watch in &mut bullets {
+        watch.0.tick(time.delta());
+    }
+}
+
+pub trait BulletCommandExt {
+    fn add_bullet<T: AsBulletKind>(&mut self, kind: T) -> &mut Self;
+}
+
+trait AsBulletKind {
+    fn as_bullet_type(self) -> BulletType;
+}
+
+impl AsBulletKind for RotatingBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Rotating(self)
+    }
+}
+
+impl AsBulletKind for NormalBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Normal(self)
+    }
+}
+
+impl AsBulletKind for HomingBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Homing(self)
+    }
+}
+
+impl AsBulletKind for StutterBullet {
+    fn as_bullet_type(self) -> BulletType {
+        BulletType::Stutter(self)
+    }
+}
+
+impl AsBulletKind for BulletType {
+    fn as_bullet_type(self) -> BulletType {
+        self
+    }
+}
+
+impl<'a> BulletCommandExt for EntityCommands<'a> {
+    fn add_bullet<T: AsBulletKind>(&mut self, kind: T) -> &mut Self {
+        let kind = kind.as_bullet_type();
+
+        match kind {
+            BulletType::Normal(normal) => self.insert(normal),
+            BulletType::Rotating(rotating) => self.insert(rotating),
+            BulletType::Homing(homing) => self.insert(homing),
+            BulletType::Stutter(stutter) => self.insert(stutter),
+            BulletType::Wave(wave) => self.insert(wave),
+        }
     }
 }

@@ -1,8 +1,9 @@
-use bevy::render::camera::ScalingMode;
+use bevy::{color::palettes::css::YELLOW, ecs::query::QueryFilter, render::camera::ScalingMode};
 
 use crate::prelude::*;
 
 mod bullet;
+mod enemy;
 
 #[derive(Component, Clone, Default)]
 struct TouhouMarker;
@@ -10,6 +11,11 @@ struct TouhouMarker;
 struct PlayerMarker;
 #[derive(Component, Default)]
 struct TouhouCamera;
+
+#[derive(QueryFilter)]
+struct PlayerFilter {
+    filter: With<PlayerMarker>,
+}
 
 type PlayerQ<'a, T> = Single<'a, T, With<PlayerMarker>>;
 
@@ -32,6 +38,10 @@ struct Circle {
 }
 
 impl Circle {
+    fn new(radius: f32, pos: Vec2) -> Self {
+        Self { pos, radius }
+    }
+
     fn within(&self, rect: Rect) -> bool {
         let Self { pos, radius } = *self;
 
@@ -45,19 +55,133 @@ impl Circle {
     }
 }
 
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum MissionState {
+    #[default]
+    Ongoing,
+    Success,
+    Fail,
+}
+
 #[derive(Resource, Default)]
 struct GameplayRect {
     rect: Rect,
 }
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+enum TouhouSets {
+    EnterTouhou,
+    Gameplay,
+    OnDeath,
+    ExitTouhou,
+}
+
+#[derive(Resource)]
+pub struct PlayerAssets {
+    dead: Handle<Image>,
+    alive: Handle<Image>,
+}
+
 pub fn touhou_plugin(app: &mut App) {
-    app.add_plugins(bullet::bullet_plugin)
+    let touhou_gameplay_pred = || {
+        TouhouSets::Gameplay
+            .run_if(in_state(GameState::Touhou).and(in_state(MissionState::Ongoing)))
+    };
+
+    app.add_plugins((bullet::bullet_plugin, enemy::enemy_plugin))
+        .init_state::<MissionState>()
+        .add_systems(Startup, (load_player_assets, create_gameplay_rect))
         .add_systems(
             OnEnter(GameState::Touhou),
-            (spawn_player, create_gameplay_rect, make_game_camera),
+            (spawn_player, make_game_camera, set_mission_status).in_set(TouhouSets::EnterTouhou),
         )
-        .add_systems(Update, do_movement.run_if(in_state(GameState::Touhou)))
-        .add_systems(PostUpdate, draw_gizmos.run_if(in_state(GameState::Touhou)));
+        .add_systems(
+            FixedUpdate,
+            (update_invulnerability, do_movement).in_set(TouhouSets::Gameplay),
+        )
+        .add_systems(
+            FixedPostUpdate,
+            (on_death.run_if(player_dead), on_damage)
+                .chain()
+                .after(bullet::player_hits),
+        )
+        .add_systems(PostUpdate, draw_gizmos.in_set(TouhouSets::Gameplay))
+        // set them all to only run if gamestate is touhou
+        .configure_sets(FixedUpdate, touhou_gameplay_pred())
+        .configure_sets(FixedPreUpdate, touhou_gameplay_pred())
+        .configure_sets(FixedPostUpdate, touhou_gameplay_pred())
+        .add_systems(OnExit(GameState::Touhou), nuke_touhou);
+}
+
+fn set_mission_status(mut mission_status: ResMut<NextState<MissionState>>) {
+    mission_status.set(MissionState::Ongoing);
+}
+
+fn nuke_touhou(
+    mut commands: Commands,
+    touhou_objects: Query<Entity, With<TouhouMarker>>,
+    touhou_camera: Query<Entity, With<TouhouMarker>>,
+) {
+    for obj in &touhou_objects {
+        commands.entity(obj).despawn_recursive();
+    }
+
+    for obj in &touhou_camera {
+        commands.entity(obj).despawn_recursive();
+    }
+}
+
+fn load_player_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(PlayerAssets {
+        dead: asset_server.load("dead.png"),
+        alive: asset_server.load("Xcom_hud/Playerrocket1.png"),
+    })
+}
+
+fn player_dead(life: Option<PlayerQ<&Life>>) -> bool {
+    life.is_some() && life.unwrap().0 == 0
+}
+
+fn on_damage(
+    mut commands: Commands,
+    player: Option<Single<(Entity, &mut Sprite), (PlayerFilter, Changed<Life>)>>,
+) {
+    let Some((ent, mut sprite)) = player.map(|p| p.into_inner()) else {
+        return;
+    };
+
+    sprite.color = Color::srgba(1.0, 1.0, 0.0, 0.8);
+
+    commands
+        .entity(ent)
+        .insert(Invulnerability(Timer::from_seconds(5.0, TimerMode::Once)));
+}
+
+fn on_death(
+    player: PlayerQ<&mut Sprite>,
+    player_assets: Res<PlayerAssets>,
+    mut mission_status: ResMut<NextState<MissionState>>,
+) {
+    let mut sprite = player.into_inner();
+    sprite.image = player_assets.dead.clone();
+    mission_status.set(MissionState::Fail);
+}
+
+fn update_invulnerability(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, Option<&mut Sprite>, &mut Invulnerability)>,
+) {
+    for (ent, sprite, mut timer) in &mut query {
+        timer.0.tick(time.delta());
+
+        if timer.0.finished() {
+            if let Some(mut sprite) = sprite {
+                sprite.color = Color::srgba(0.0, 0.0, 0.0, 0.0);
+            }
+            commands.entity(ent).remove::<Invulnerability>();
+        }
+    }
 }
 
 fn make_game_camera(mut commands: Commands) {
@@ -66,10 +190,10 @@ fn make_game_camera(mut commands: Commands) {
         OrthographicProjection {
             near: -1000.0,
             far: 1000.0,
-            viewport_origin: Vec2::ZERO,
+            viewport_origin: Vec2::splat(0.5),
             scaling_mode: ScalingMode::Fixed {
-                width: 800.0,
-                height: 600.0,
+                width: 1920.0,
+                height: 1080.0,
             },
             scale: 1.0,
             area: Rect::new(0.0, 0.0, 800.0, 600.0),
@@ -78,32 +202,52 @@ fn make_game_camera(mut commands: Commands) {
     ));
 }
 
+fn player_immortal(player: Option<Single<Entity, (PlayerFilter, With<Invulnerability>)>>) -> bool {
+    player.is_some()
+}
+
+#[derive(Component)]
+struct Invulnerability(Timer);
+
 #[derive(Bundle, Default)]
 pub struct Player {
     sprite: Sprite,
     collider: Collider,
     transform: Transform,
+    lives: Life,
     markers: (PlayerMarker, TouhouMarker),
 }
 
+#[derive(Component)]
+pub struct Life(usize);
+
+impl Default for Life {
+    fn default() -> Self {
+        Life(1)
+    }
+}
+
 pub fn create_gameplay_rect(mut commands: Commands) {
+    const SIZE: Vec2 = Vec2::new(1920.0, 1080.0);
+
     commands.insert_resource(GameplayRect {
         rect: Rect {
-            min: Vec2::new(100.0, 0.0),
-            max: Vec2::new(700.0, 600.0),
+            min: -SIZE / 2.0,
+            max: SIZE / 2.0,
         },
     });
 }
 
-pub fn spawn_player(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+pub fn spawn_player(mut commands: Commands, player_assets: Res<PlayerAssets>) {
     commands.spawn(Player {
         sprite: Sprite {
             custom_size: Some(Vec2::new(100.0, 100.0)),
-            image: asset_server.load("mascot.png"),
+            image: player_assets.alive.clone(),
             ..Default::default()
         },
         transform: Transform::from_xyz(800.0 / 2.0, 600.0 / 2.0, 0.0),
-        collider: Collider { radius: 20.0 },
+        collider: Collider { radius: 40.0 },
+        lives: Life(3),
         ..Default::default()
     });
 }
@@ -113,8 +257,6 @@ fn draw_gizmos(
     area: Res<GameplayRect>,
     colliders: Query<(&Transform, &Collider)>,
 ) {
-    return;
-
     use bevy::color::palettes::css::RED;
 
     gizmos.rect_2d(
@@ -139,9 +281,10 @@ fn do_movement(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     area: Res<GameplayRect>,
-    mut player_info: Single<(&mut Transform, &Collider), With<PlayerMarker>>,
+    asset_server: ResMut<AssetServer>,
+    mut player_info: Single<(&mut Transform, &Collider, &mut Sprite), With<PlayerMarker>>,
 ) {
-    let (mut trans, mut collider) = player_info.into_inner();
+    let (mut trans, mut collider, mut sprite) = player_info.into_inner();
     let up = keyboard_input.any_pressed([KeyCode::KeyW, KeyCode::ArrowUp]) as i32 as f32;
     let down = keyboard_input.any_pressed([KeyCode::KeyS, KeyCode::ArrowDown]) as i32 as f32;
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]) as i32 as f32;
@@ -150,7 +293,13 @@ fn do_movement(
     let dy = up + -down;
     let dx = right + -left;
 
-    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 10.0;
+    if down > 0.0 {
+        sprite.image = asset_server.load("Xcom_hud/Playerrocket2.png");
+    } else {
+        sprite.image = asset_server.load("Xcom_hud/Playerrocket1.png");
+    }
+
+    let wishdir = Vec3::new(dx, dy, 0.0).normalize_or_zero() * 3.0;
 
     let new_pos = (trans.translation + wishdir).xy();
 

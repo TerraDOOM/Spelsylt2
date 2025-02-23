@@ -1,8 +1,13 @@
 use crate::prelude::*;
+use rand::prelude::*;
+use rand::Rng;
 use std::collections::HashMap;
+use std::{f32::consts::PI, time::Duration};
 use ResourceType::*;
 
-use crate::uispawner::*;
+mod uispawner;
+
+use uispawner::*;
 
 pub fn xcom_plugin(app: &mut App) {
     app.add_systems(Startup, setup);
@@ -10,7 +15,16 @@ pub fn xcom_plugin(app: &mut App) {
     app.add_systems(OnEnter(GameState::Xcom), on_xcom)
         .add_systems(
             Update,
-            (update, button_system).run_if(in_state(GameState::Xcom)),
+            (button_system, update_scroll_position).run_if(in_state(GameState::Xcom)),
+        )
+        .add_systems(
+            Update,
+            (update).run_if(in_state(GameState::Xcom).and(in_state(Focus::Map))),
+        )
+        .add_systems(
+            Update,
+            (unequip_loadout, equip_loadout)
+                .run_if(in_state(GameState::Xcom).and(in_state(Focus::Mission))),
         );
 
     app.init_state::<Focus>();
@@ -33,24 +47,41 @@ pub struct ProdScreen;
 #[derive(Component)]
 pub struct MissionScreen;
 
-pub fn on_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
-    println!("On_science");
+#[derive(Component)]
+pub struct CurrentResearch;
+
+#[derive(Component, Clone)]
+pub struct Equipment(pub Tech);
+
+pub fn on_science(
+    mut science_query: Query<&mut Node, With<ScienceScreen>>,
+    mut current_research_text: Query<&mut Text, With<CurrentResearch>>,
+    context: ResMut<XcomState>,
+) {
     for mut science_node in &mut science_query {
         science_node.display = Display::Flex;
+    }
+
+    for mut text in &mut current_research_text {
+        if let Some(selected_research) = &context.selected_research {
+            **text = format![
+                "Currently researching: \n{}",
+                selected_research.name.clone()
+            ];
+        } else {
+            **text = "Not researching anything".to_string();
+        }
     }
 }
 
 pub fn off_science(mut science_query: Query<&mut Node, With<ScienceScreen>>) {
-    println!("_science");
     for mut science_node in &mut science_query {
         science_node.display = Display::None;
     }
 }
 
 pub fn on_prod(mut prod_query: Query<&mut Node, With<ProdScreen>>) {
-    println!("On_prod");
     for mut prod_node in &mut prod_query {
-        println!("lol");
         prod_node.display = Display::Flex;
     }
 }
@@ -80,6 +111,12 @@ struct Background;
 #[derive(Component)]
 pub struct XcomObject;
 
+#[derive(Component)]
+pub struct Clock;
+
+#[derive(Component)]
+pub struct ShipComponent(Slot);
+
 #[derive(Resource)]
 pub struct XcomResources {
     pub geo_map: Handle<Image>,
@@ -91,16 +128,24 @@ pub struct XcomResources {
     pub button_green_hover: Handle<Image>,
     pub backpanel: Handle<Image>,
     pub icons: HashMap<Tech, Handle<Image>>,
+    pub loadout: Handle<Image>,
+    pub circle: Handle<Image>,
     pub font: Handle<Font>,
 }
 
 #[derive(Resource)]
 pub struct XcomState {
     pub time: usize,
-    pub research: Vec<Research>,
+    pub finished_research: Vec<Research>,
+    pub possible_research: Vec<Research>,
     pub selected_research: Option<Research>,
-    pub resources: HashMap<ResourceType, Resources>,
+    pub selected_production: Option<ResourceType>,
+    pub inventory: HashMap<ResourceType, Resources>,
     pub assets: XcomResources,
+    pub active_missions: Vec<Mission>,
+    pub loadout: HashMap<Slot, Option<Tech>>,
+    pub timer: Timer,
+    pub speed: usize,
 }
 
 #[repr(usize)]
@@ -110,6 +155,18 @@ pub enum ButtonPath {
     ScienceMenu,
     ProductionMenu,
     MissionMenu,
+    StartMission,
+    StartResearch,
+}
+
+#[repr(usize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum Slot {
+    Front,
+    Core1,
+    Engine,
+    LeftWing1,
+    RightWing1,
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -127,22 +184,38 @@ pub struct ButtonLink(pub ButtonPath);
 #[derive(Component)]
 struct BackDropFade;
 
+#[derive(Component)]
+struct LoadoutIcon;
+
+#[derive(Component, Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct ScienceSelect(pub Tech);
+
+#[derive(Component)]
+pub struct MissionMarker(Mission);
+
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut ImageNode, &ButtonLink, &Children),
+        (
+            &Interaction,
+            &mut ImageNode,
+            &ButtonLink,
+            Option<&ScienceSelect>,
+        ),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut Text>,
-    context: ResMut<XcomState>,
+    mut context: ResMut<XcomState>,
+    mut mission_params: ResMut<MissionParams>,
     mut next_state: ResMut<NextState<Focus>>,
+    mut next_scene: ResMut<NextState<GameState>>,
 ) {
-    for (interaction, mut sprite, link, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
+    for (interaction, mut sprite, link, potential_tech) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 // Depending on button flag, do something
                 //                log::info!(link);
-                sprite.image = context.assets.button_normal_hover.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal_hover.clone();
+                }
                 println!("Pressed a button");
 
                 match (link).0 {
@@ -153,20 +226,45 @@ fn button_system(
                         next_state.set(Focus::Science);
                     }
                     ButtonPath::ProductionMenu => {
-                        println!("Entering Production");
                         next_state.set(Focus::Production);
                     }
                     ButtonPath::MissionMenu => {
-                        println!("Entering Mission");
                         next_state.set(Focus::Mission);
+                    }
+
+                    ButtonPath::StartMission => {
+                        println!("Starting a Mission!");
+                        *mission_params = MissionParams {
+                            loadout: vec![],
+                            enemy: "First enemy".to_string(),
+                        };
+                        next_scene.set(GameState::Touhou);
+                    }
+
+                    ButtonPath::StartResearch => {
+                        println!("Changing research TODO");
+                        if let Some(tech) = potential_tech {
+                            if let Some(i) = context
+                                .possible_research
+                                .iter()
+                                .position(|n| n.id == tech.0)
+                            {
+                                context.selected_research =
+                                    Some(context.possible_research[i].clone());
+                            }
+                        }
                     }
                 }
             }
             Interaction::Hovered => {
-                sprite.image = context.assets.button_normal_hover.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal_hover.clone();
+                }
             }
             Interaction::None => {
-                sprite.image = context.assets.button_normal.clone();
+                if link.0 != ButtonPath::MissionMenu {
+                    sprite.image = context.assets.button_normal.clone();
+                }
             }
         }
     }
@@ -196,9 +294,22 @@ fn quit_hud_element_system(
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let assets = load_xcom_assets(&asset_server);
+    commands.insert_resource(MissionParams {
+        loadout: vec![],
+        enemy: "".to_string(),
+    });
+
     commands.insert_resource(XcomState {
-        time: 0,
-        research: vec![Research {
+        time: 371520,
+        finished_research: vec![Research {
+            id: Tech::HeavyBody,
+            name: "Normal jetplane".to_string(),
+            description: "A normal fucking plane, kinda shit ngl".to_string(),
+            cost: 50,
+            prerequisites: vec![],
+            progress: 50,
+        }],
+        possible_research: vec![Research {
             id: Tech::HeavyBody,
             name: "Heavy Body".to_string(),
             description: "A much heavier chassi, allowing the craft to take upwards of 3 hits"
@@ -207,13 +318,30 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             prerequisites: vec![],
             progress: 50,
         }],
-
+        active_missions: vec![],
         selected_research: None,
-        resources: vec![Resources {
-            name: Scientists,
-            description: "A talented researcher of the arcane".to_string(),
-            amount: 5,
-        }]
+        selected_production: None,
+        loadout: HashMap::from([
+            (Slot::Front, Some(Tech::Rocket)),
+            (Slot::Engine, Some(Tech::MachineGun)),
+            (Slot::Core1, None),
+            (Slot::LeftWing1, Some(Tech::MagicBullet)),
+            (Slot::RightWing1, None),
+        ]),
+        timer: Timer::new(Duration::from_secs_f32(0.8), TimerMode::Repeating),
+        speed: 5,
+        inventory: vec![
+            Resources {
+                name: Scientists,
+                description: "A talented researcher of the near arcane".to_string(),
+                amount: 5,
+            },
+            Resources {
+                name: Engineer,
+                description: "A talented craftsman of the near arcane".to_string(),
+                amount: 5,
+            },
+        ]
         .into_iter()
         .map(|r| (r.name.clone(), r))
         .collect(),
@@ -221,21 +349,57 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn spawn_mission(commands: &mut Commands, context: &ResMut<XcomState>) {
+fn spawn_mission(
+    commands: &mut Commands,
+    context: &ResMut<XcomState>,
+    x: f32,
+    y: f32,
+    phase: f32,
+) -> Mission {
+    let mission = Mission {
+        id: "TODO".to_string(),
+        name: "Not implemented yet".to_string(),
+        enemy: "Cirno idk".to_string(),
+        requirment: vec![],
+        consequences: vec![],
+        rewards: vec![],
+        time_left: 20000 * 40,
+        overworld_x: x,
+        overworld_y: y,
+        phase,
+    };
     commands.spawn((
         Button,
         ButtonLink(ButtonPath::MissionMenu),
+        MissionMarker(mission.clone()),
         Node {
-            width: Val::Px(150.0),
-            height: Val::Px(150.0),
+            width: Val::Px(50.0),
+            height: Val::Px(50.0),
             border: UiRect::all(Val::Px(5.0)),
+            left: Val::Px(x),
+            bottom: Val::Px(y),
             ..default()
         },
-        BorderColor(Color::BLACK),
-        BorderRadius::MAX,
-        BackgroundColor(Color::srgb(0.9, 0.6, 0.6)),
+        ImageNode::new(context.assets.circle.clone()),
         ZIndex(1),
     ));
+    mission
+}
+
+fn move_enemies(
+    mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
+    passed_time: f32,
+) {
+    for (mut node, mut mission_marker) in &mut marker_query {
+        let phase = mission_marker.0.phase;
+        mission_marker.0.overworld_x += (passed_time + phase).sin() * 5.;
+        mission_marker.0.overworld_y += (passed_time + phase).cos() * 5.;
+        mission_marker.0.time_left -= passed_time as usize;
+        dbg!(mission_marker.0.time_left);
+
+        node.left = Val::Px(mission_marker.0.overworld_x);
+        node.top = Val::Px(mission_marker.0.overworld_y);
+    }
 }
 
 fn on_xcom(
@@ -260,29 +424,26 @@ fn on_xcom(
         XcomObject,
     ));
 
-    spawn_mission(&mut commands, &context);
+    spawn_mission(&mut commands, &context, 100., 100., 0.);
 
     //Map hud
-    SpawnGeoHUD(&mut commands, &context);
+    spawn_geo_hud(&mut commands, &context);
 
     //ScienceHud
-    SpawnScienceHUD(&mut commands, &context);
+    spawn_science_hud(&mut commands, &context);
 
     //ProductionHud
-    SpawnManufacturingHUD(&mut commands, &context);
+    spawn_manufacturing_hud(&mut commands, &context);
 
     //SpawnMissionHud
-    SpawnMissionHUD(&mut commands, &context);
+    spawn_mission_hud(&mut commands, &context);
 }
 
 fn off_xcom() {}
 
 fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
-    let mut icons = HashMap::new();
-    icons.insert(Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png"));
-
     XcomResources {
-        geo_map: asset_server.load("placeholder_geomap.png"),
+        geo_map: asset_server.load("Xcom_hud/Earth.png"),
         placeholder: asset_server.load("mascot.png"),
         button_normal: asset_server.load("Xcom_hud/Main_button_clicked.png"),
         button_normal_hover: asset_server.load("Xcom_hud/Main_button_unclicked.png"),
@@ -290,16 +451,130 @@ fn load_xcom_assets(asset_server: &Res<AssetServer>) -> XcomResources {
         button_green: asset_server.load("Xcom_hud/Icon_button_clicked.png"),
         button_green_hover: asset_server.load("Xcom_hud/Icon_button_unclicked.png"),
         backpanel: asset_server.load("Xcom_hud/Backpanel.png"),
-        icons,
+        loadout: asset_server.load("Xcom_hud/Ship_loadment.png"),
+        icons: HashMap::from([
+            (Tech::HeavyBody, asset_server.load("Xcom_hud/Flight.png")),
+            (
+                Tech::MagicBullet,
+                asset_server.load("Xcom_hud/Magic_bullet.png"),
+            ),
+            (
+                Tech::MachineGun,
+                asset_server.load("Xcom_hud/Machingun.png"),
+            ),
+            (Tech::Rocket, asset_server.load("Xcom_hud/rocket.png")),
+        ]),
+        circle: asset_server.load("Enemies/Redcirle.png"),
         font: asset_server.load("fonts/Pixelfont/slkscr.ttf"),
     }
 }
 
-fn update(mut context: ResMut<XcomState>, real_time: Res<Time>) {
-    let scientists: usize = context.resources[&Scientists].amount.clone();
-    context.time += 1;
-    if let Some(selected_research) = &mut context.selected_research {
-        selected_research.progress += scientists;
+fn time_to_date(time: usize) -> String {
+    let mut month = "Jan".to_owned();
+    let mut day_reduction = 0;
+    match (time / (24 * 60)) % 365 {
+        32..=59 => {
+            month = "Feb".to_owned();
+            day_reduction = 31;
+        }
+        60..=90 => {
+            month = "Mar".to_owned();
+            day_reduction = 59;
+        }
+        91..=120 => {
+            month = "Apr".to_owned();
+            day_reduction = 90;
+        }
+        121..=151 => {
+            month = "May".to_owned();
+            day_reduction = 120;
+        }
+        152..=181 => {
+            month = "Jun".to_owned();
+            day_reduction = 151;
+        }
+        182..=212 => {
+            month = "Jul".to_owned();
+            day_reduction = 181;
+        }
+        213..=243 => {
+            month = "Aug".to_owned();
+            day_reduction = 212;
+        }
+        244..=273 => {
+            month = "Sep".to_owned();
+            day_reduction = 243;
+        }
+        274..=304 => {
+            month = "Oct".to_owned();
+            day_reduction = 273;
+        }
+        305..=334 => {
+            month = "Nov".to_owned();
+            day_reduction = 304;
+        }
+        335..=365 => {
+            month = "Dec".to_owned();
+            day_reduction = 334;
+        }
+        _ => {}
+    }
+    format!(
+        "{}\n{} {}\n{:02}:{:02}",
+        1985 + (time / (24 * 60 * 365)),
+        month,
+        (time / (24 * 60)) - day_reduction,
+        (time / 60) % 24,
+        time % 60
+    )
+}
+
+fn update(
+    mut commands: Commands,
+    mut context: ResMut<XcomState>,
+    real_time: Res<Time>,
+    clock_query: Single<(&mut Children), With<Clock>>,
+    mut text_query: Query<&mut Text>,
+    mut marker_query: Query<(&mut Node, &mut MissionMarker), (With<MissionMarker>)>,
+) {
+    context.timer.tick(real_time.delta());
+
+    if context.timer.just_finished() {
+        context.timer.reset();
+
+        let scientists: usize = context.inventory[&Scientists].amount.clone();
+        let engineers: usize = context.inventory[&Engineer].amount.clone();
+        context.time += 30;
+
+        let mut rng = rand::thread_rng();
+        if 0 == rng.gen_range(0..20) {
+            spawn_mission(
+                &mut commands,
+                &context,
+                rng.gen_range(120..800) as f32, //The x spawn range
+                rng.gen_range(120..500) as f32, //The y spawn range
+                rng.gen_range(0..360) as f32,   //The complete phase randomisation
+            );
+        }
+
+        move_enemies(marker_query, (context.time as f32) / 80.0);
+
+        if let Some(selected_research) = &mut context.selected_research {
+            selected_research.progress += scientists;
+            if (selected_research.progress > selected_research.cost) {
+                //TODO popup/Notification?
+            }
+        }
+        if let Some(selected_production) = &mut context.selected_production {
+            println!("lol");
+            //        selected_production.progress += scientists;
+            //        if (selected_production.progress > selected_production.cost) {
+            //TODO popup/Notification?
+        }
+        //dbg!(time_to_date(context.time));
+        //    if clock_query.is_some() {
+        let mut text = text_query.get_mut(clock_query[0]).unwrap();
+        **text = time_to_date(context.time);
     }
 }
 
@@ -307,52 +582,5 @@ fn on_time_tick(context: ResMut<XcomState>, delta_time: usize) {
     //Chance for invasion/mission TODO
     //Tick research and production
 
-    //Change hud
+    //Change hudv
 }
-
-/*fn on_xcom_sim(
-    mut commands: Commands,
-    mut tmp: ResMut<NextState<DatingState>>,
-    mut did_init: Local<bool>,
-    mut context: ResMut<DatingContext>,
-    asset_server: Res<AssetServer>,
-) {
-    let window = windows.single();
-    let width = window.resolution.width();
-    let height = window.resolution.height();
-
-    let font = asset_server.load("fonts/Pixelfont/slkscr.ttf");
-    let text_font = TextFont {
-        font: font.clone(),
-        font_size: 50.0,
-        ..default()
-    };
-
-    //Cursor initialisation
-    if let Some(mut background) = background.map(Single::into_inner) {
-        background.color = Color::srgba(1.0, 1.0, 1.0, 1.0);
-    } else {
-        let background_size = Some(Vec2::new(width, height));
-        let background_position = Vec2::new(0.0, 0.0);
-        commands.spawn((
-            dbg!(Sprite {
-                image: asset_server.load("Backgrounds/deeper_deeper_base.png"),
-                custom_size: background_size,
-                ..Default::default()
-            }),
-            Transform::from_translation(background_position.extend(-1.0)),
-            Background,
-            DatingObj,
-        ));
-    }
-
-    let cursor_size = Vec2::new(width / 8.0, width / 8.0);
-    let cursor_position = Vec2::new(0.0, 250.0);
-    let enc = commands.spawn((
-        Sprite::from_color(Color::srgb(0.25, 0.75, 0.25), cursor_size),
-        Transform::from_translation(cursor_position.extend(-0.1)),
-        Cursor(0),
-        Portrait,
-        DatingObj,
-    ));
-}*/

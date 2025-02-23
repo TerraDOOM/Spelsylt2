@@ -1,15 +1,20 @@
 use bevy::prelude::*;
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct Mission {
-    id: String,
-    name: String,
-    enemy: String,
-    requirment: Vec<String>,
-    consequences: Vec<String>,
-    rewards: Vec<String>,
+    pub id: String,
+    pub name: String,
+    pub enemy: String,
+    pub requirment: Vec<String>,
+    pub consequences: Vec<String>,
+    pub rewards: Vec<String>,
+    pub time_left: usize,
+    pub overworld_x: f32,
+    pub overworld_y: f32,
+    pub phase: f32,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Research {
     pub id: Tech,
     pub name: String,
@@ -30,6 +35,7 @@ pub struct Resources {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum ResourceType {
     Scientists,
+    Engineer,
     MagicDust,
 }
 
@@ -38,4 +44,14 @@ pub enum ResourceType {
 pub enum Tech {
     HeavyBody,
     HoverMagic,
+    MagicBullet,
+    MachineGun,
+    Rocket,
+}
+
+#[derive(Resource)]
+pub struct MissionParams {
+    pub loadout: Vec<String>,
+    pub enemy: String,
+    //    pub mission: Mission,
 }
