@@ -70,7 +70,8 @@ pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut An
 
         animation.transition_time.tick(time.delta());
         if animation.transition_time.just_finished() {
-            // atlas.
+            atlas.index = (atlas.index + 1) % (animation.max_index - animation.min_index)
+                + animation.min_index
         }
     }
 }
