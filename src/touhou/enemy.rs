@@ -48,7 +48,7 @@ struct EncounterTime {
 #[derive(Bundle, Default)]
 pub struct EnemyBundle {
     sprite: Sprite,
-    animation: AnimatedSprite,
+    animation: Animation,
     transform: Transform,
     collider: Collider,
     health: Health,
@@ -122,16 +122,16 @@ pub struct DivisiveEmitter {
 }
 
 #[derive(Component, Clone, Default, Debug)]
-pub struct AnimatedSprite {
+pub struct Animation {
     transition_time: Timer,
     max_index: usize,
     min_index: usize,
     index: usize,
 }
 
-impl AnimatedSprite {
+impl Animation {
     fn new(time: f32, max_index: usize, min_index: usize) -> Self {
-        AnimatedSprite {
+        Animation {
             transition_time: Timer::from_seconds(time, TimerMode::Repeating),
             max_index,
             min_index,
@@ -140,7 +140,7 @@ impl AnimatedSprite {
     }
 }
 
-pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut AnimatedSprite)>) {
+pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut Animation)>) {
     for (mut sprite, mut animation) in &mut sprites {
         let Some(mut atlas) = sprite.texture_atlas.as_mut() else {
             continue;
@@ -752,7 +752,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             }),
             ..Default::default()
         },
-        animation: AnimatedSprite::new(0.1, 2, 0),
+        animation: Animation::new(0.1, 2, 0),
         ..Default::default()
     };
     let red_girl_bullet_2 = BulletBundle {
@@ -766,7 +766,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             custom_size: Some(Vec2::splat(BULLET_SIZE * 3.0)),
             ..Default::default()
         },
-        animation: AnimatedSprite::new(0.1, 2, 0),
+        animation: Animation::new(0.1, 2, 0),
         ..Default::default()
     };
     let lizard_bullet = BulletBundle {
@@ -780,7 +780,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             }),
             ..Default::default()
         },
-        animation: AnimatedSprite::new(0.1, 3, 0),
+        animation: Animation::new(0.1, 3, 0),
         ..Default::default()
     };
     let tentacle_bullet = BulletBundle {
@@ -803,7 +803,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
             }),
             ..Default::default()
         },
-        animation: AnimatedSprite::new(0.1, 5, 0),
+        animation: Animation::new(0.1, 5, 0),
         ..Default::default()
     };
 
@@ -821,7 +821,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         }),
                         ..Default::default()
                     },
-                    animation: AnimatedSprite::new(0.1, 3, 0),
+                    animation: Animation::new(0.1, 3, 0),
                     transform: Transform::from_xyz(200.0, 0.0, 0.0),
                     collider: Collider { radius: 150.0 },
                     health: Health(2000),
@@ -1062,7 +1062,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         }),
                         ..Default::default()
                     },
-                    animation: AnimatedSprite::new(0.1, 3, 0),
+                    animation: Animation::new(0.1, 3, 0),
                     transform: Transform::from_xyz(200.0, 0.0, 0.0),
                     collider: Collider { radius: 150.0 },
                     health: Health(2000),
@@ -1170,7 +1170,7 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                         }),
                         ..Default::default()
                     },
-                    animation: AnimatedSprite::new(0.1, 5, 0),
+                    animation: Animation::new(0.1, 5, 0),
                     transform: Transform::from_xyz(200.0, 0.0, 0.0),
                     collider: Collider { radius: 150.0 },
                     health: Health(5000),

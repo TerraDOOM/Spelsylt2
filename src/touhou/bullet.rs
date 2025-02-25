@@ -10,7 +10,7 @@ use bevy::{
     input::common_conditions::input_pressed,
     time::Stopwatch,
 };
-use enemy::{AnimatedSprite, BulletSpawner, EnemyMarker, Health};
+use enemy::{Animation, BulletSpawner, EnemyMarker, Health};
 
 use super::*;
 
@@ -202,10 +202,14 @@ pub fn config_loadout(
     commands.entity(ent).with_children(|player| {
         for mut weapon in weapons {
             weapon.salted = salted;
+            weapon.phasing = phasing;
+            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon);
         }
         for mut weapon in alt_weapons {
             weapon.salted = alt_salted;
+            weapon.phasing = alt_phasing;
+            weapon.damage = (weapon.damage as f32 * damage_multiplier) as u32;
             player.spawn(weapon).insert(AltFire);
         }
     });
@@ -318,7 +322,7 @@ pub struct BulletBundle {
     pub sprite: Sprite,
     pub velocity: Velocity,
     pub lifetime: Lifetime,
-    pub animation: AnimatedSprite,
+    pub animation: Animation,
     pub markers: (BulletMarker, TouhouMarker),
 }
 

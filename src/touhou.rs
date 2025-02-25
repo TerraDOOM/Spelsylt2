@@ -3,7 +3,7 @@ use bevy::{
     render::camera::ScalingMode,
 };
 use bullet::AltFire;
-use enemy::{EnemyMarker, Health};
+use enemy::{Animation, EnemyMarker, Health};
 
 use crate::prelude::*;
 
@@ -91,6 +91,27 @@ enum TouhouSets {
 
 #[derive(Component, Deref, DerefMut, Default)]
 struct Speed(f32);
+
+#[derive(Bundle)]
+struct AnimatedSprite {
+    sprite: Sprite,
+    animation: Animation,
+}
+
+pub fn make_animation(
+    sprite: Sprite,
+    layout: Handle<TextureAtlasLayout>,
+    time: f32,
+    n_anims: usize,
+) {
+    AnimatedSprite {
+        sprite: Sprite {
+            texture_atlas: Some(TextureAtlas { layout, index: 0 }),
+            ..sprite
+        },
+        animation: Animation::new(Timer::from_seconds(time, TimerMode::Repeating), n_anims, 0),
+    }
+}
 
 #[derive(Resource)]
 pub struct PlayerAssets {
