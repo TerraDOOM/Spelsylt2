@@ -103,13 +103,13 @@ pub fn make_animation(
     layout: Handle<TextureAtlasLayout>,
     time: f32,
     n_anims: usize,
-) {
+) -> AnimatedSprite {
     AnimatedSprite {
         sprite: Sprite {
             texture_atlas: Some(TextureAtlas { layout, index: 0 }),
             ..sprite
         },
-        animation: Animation::new(Timer::from_seconds(time, TimerMode::Repeating), n_anims, 0),
+        animation: Animation::new(time, n_anims, 0),
     }
 }
 
