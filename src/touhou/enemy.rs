@@ -153,7 +153,7 @@ pub fn animate_sprites(time: Res<Time>, mut sprites: Query<(&mut Sprite, &mut An
         animation.transition_time.tick(time.delta());
         if animation.transition_time.just_finished() {
             atlas.index = (atlas.index + 1) % (animation.max_index - animation.min_index)
-                + animation.min_index
+                + animation.min_index;
         }
     }
 }
@@ -337,6 +337,18 @@ struct RandomMovement {
     time_since_last_move: Stopwatch,
 }
 
+impl RandomMovement {
+    fn new(start: Vec2, speed: f32) -> Self {
+        RandomMovement {
+            next_move_timer: Timer::from_seconds(5.0, TimerMode::Repeating),
+            move_start: start,
+            move_end: start,
+            move_time: speed,
+            time_since_last_move: Stopwatch::new(),
+        }
+    }
+}
+
 fn do_random_movement(time: Res<Time>, mut query: Query<(&mut Transform, &mut RandomMovement)>) {
     for (mut trans, mut movement) in &mut query {
         let RandomMovement {
@@ -370,10 +382,10 @@ fn do_random_movement(time: Res<Time>, mut query: Query<(&mut Transform, &mut Ra
             ));
             *move_start = *move_end;
 
-            let random_angle = rng.random_range(0.0..TAU);
-            let random_dist = rng.random_range(50.0..500.0);
+            let new_x = rng.random_range(200.0..900.0);
+            let new_y = rng.random_range(-500.0..500.0);
 
-            *move_end += Vec2::from_angle(random_angle) * random_dist;
+            *move_end = Vec2::new(new_x, new_y)
         }
     }
 }
@@ -905,10 +917,10 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
         &assets.moongirl_bullet_sheet,
         &assets.moongirl_layout,
         medium,
-        0,
+        5,
     );
 
-    match params.enemy {
+    match Enemies::MoonGirl {
         Enemies::RedGirl => {
             commands
                 .spawn(EnemyBundle {
@@ -926,6 +938,13 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     collider: Collider { radius: 150.0 },
                     health: Health(2000),
                     ..Default::default()
+                })
+                .insert(RandomMovement {
+                    next_move_timer: Timer::from_seconds(10.0, TimerMode::Repeating),
+                    move_start: Vec2::new(200.0, 0.0),
+                    move_end: Vec2::new(500.0, 0.0),
+                    move_time: 3.0,
+                    time_since_last_move: Stopwatch::new(),
                 })
                 .spawn_spellcard(0.0, 25.0, |builder| {
                     builder
@@ -1004,6 +1023,13 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     collider: Collider { radius: 150.0 },
                     health: Health(1500),
                     ..Default::default()
+                })
+                .insert(RandomMovement {
+                    next_move_timer: Timer::from_seconds(10.0, TimerMode::Repeating),
+                    move_start: Vec2::new(200.0, 0.0),
+                    move_end: Vec2::new(500.0, 0.0),
+                    move_time: 3.0,
+                    time_since_last_move: Stopwatch::new(),
                 })
                 .spawn_spellcard(0.0, 25.0, |parent| {
                     parent
@@ -1130,6 +1156,13 @@ pub fn spawn_enemy(mut commands: Commands, assets: Res<TouhouAssets>, params: Re
                     collider: Collider { radius: 150.0 },
                     health: Health(5000),
                     ..Default::default()
+                })
+                .insert(RandomMovement {
+                    next_move_timer: Timer::from_seconds(10.0, TimerMode::Repeating),
+                    move_start: Vec2::new(200.0, 0.0),
+                    move_end: Vec2::new(500.0, 0.0),
+                    move_time: 3.0,
+                    time_since_last_move: Stopwatch::new(),
                 })
                 // em1
                 .spawn_spellcard(0.0, 25.0, |parent| {
